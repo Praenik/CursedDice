@@ -220,10 +220,6 @@ class ClassSelectView(arcade.View):
             from entities.classes import Wizard
             player = Wizard()
 
-        print(f"Создан персонаж: {player}")
-        print(f"  Статы: {player.stats}")
-        print(f"  HP: {player.current_hp}/{player.max_hp}, AC: {player.base_ac}")
-
         from views.game_view import GameView
         game_view = GameView(player)
         self.window.show_view(game_view)

@@ -12,7 +12,6 @@ class GameView(arcade.View):
         super().__init__()
 
         self.player = player
-
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
 
@@ -26,6 +25,24 @@ class GameView(arcade.View):
         self.down = False
         self.left = False
         self.right = False
+
+    def _spawn_enemies(self):
+        """Создаёт врагов на карте."""
+        for _ in range(3):
+            goblin = Goblin()
+            while True:
+                spawn_x = random.randint(50, SCREEN_WIDTH - 50)
+                spawn_y = random.randint(50, SCREEN_HEIGHT - 50)
+
+                dx = spawn_x - self.player.center_x
+                dy = spawn_y - self.player.center_y
+                distance = (dx ** 2 + dy ** 2) ** 0.5
+
+                if distance > 150:
+                    break
+
+            goblin.setup(spawn_x, spawn_y)
+            self.enemies_list.append(goblin)
 
     def on_draw(self):
         self.clear()
@@ -66,41 +83,73 @@ class GameView(arcade.View):
         self.player.change_y = 0
 
         if self.up:
-            self.player.change_y = self.player.speed
+            self.player.change_y = self.player.speed * delta_time * 60
         if self.down:
-            self.player.change_y = -self.player.speed
+            self.player.change_y = -self.player.speed * delta_time * 60
         if self.left:
-            self.player.change_x = -self.player.speed
+            self.player.change_x = -self.player.speed * delta_time * 60
         if self.right:
-            self.player.change_x = self.player.speed
+            self.player.change_x = self.player.speed * delta_time * 60
+
+        # Обновление врагов (один раз, с передачей всех нужных параметров)
+        for enemy in self.enemies_list:
+            enemy.update(delta_time, player=self.player, enemies_list=self.enemies_list)
+
+        # Коллизия: игрок не проходит сквозь врагов
+        player_physics = arcade.PhysicsEngineSimple(
+            self.player,
+            self.enemies_list
+        )
+        player_physics.update()
 
         self.player_list.update()
-
-        for enemy in self.enemies_list:
-            enemy.update(delta_time, self.player)
-
         self.enemies_list.update()
 
-        if self.player.left < 0:
-            self.player.left = 0
-        elif self.player.right > SCREEN_WIDTH:
-            self.player.right = SCREEN_WIDTH
-
-        if self.player.bottom < 0:
-            self.player.bottom = 0
-        elif self.player.top > SCREEN_HEIGHT:
-            self.player.top = SCREEN_HEIGHT
-
+        # Ограничение границами окна
+        self._clamp_to_bounds(self.player)
         for enemy in self.enemies_list:
-            if enemy.left < 0:
-                enemy.left = 0
-            elif enemy.right > SCREEN_WIDTH:
-                enemy.right = SCREEN_WIDTH
+            self._clamp_to_bounds(enemy)
 
-            if enemy.bottom < 0:
-                enemy.bottom = 0
-            elif enemy.top > SCREEN_HEIGHT:
-                enemy.top = SCREEN_HEIGHT
+    def _handle_enemy_collisions(self):
+        """Обрабатывает коллизии только между врагами."""
+        for i, enemy1 in enumerate(self.enemies_list):
+            for j, enemy2 in enumerate(self.enemies_list):
+                if i >= j:
+                    continue
+                if arcade.check_for_collision(enemy1, enemy2):
+                    # Раздвигаем врагов, но не позволяем им толкать друг друга слишком сильно
+                    dx = enemy1.center_x - enemy2.center_x
+                    dy = enemy1.center_y - enemy2.center_y
+                    distance = (dx ** 2 + dy ** 2) ** 0.5
+
+                    if distance == 0:
+                        dx = random.uniform(-1, 1)
+                        dy = random.uniform(-1, 1)
+                        distance = (dx ** 2 + dy ** 2) ** 0.5
+
+                    dx /= distance
+                    dy /= distance
+
+                    min_distance = (enemy1.width / 2 + enemy2.width / 2)
+                    overlap = min_distance - distance
+
+                    if overlap > 0:
+                        enemy1.center_x += dx * overlap * 0.5
+                        enemy1.center_y += dy * overlap * 0.5
+                        enemy2.center_x -= dx * overlap * 0.5
+                        enemy2.center_y -= dy * overlap * 0.5
+
+    def _clamp_to_bounds(self, sprite):
+        """Ограничивает спрайт границами окна."""
+        if sprite.left < 0:
+            sprite.left = 0
+        elif sprite.right > SCREEN_WIDTH:
+            sprite.right = SCREEN_WIDTH
+
+        if sprite.bottom < 0:
+            sprite.bottom = 0
+        elif sprite.top > SCREEN_HEIGHT:
+            sprite.top = SCREEN_HEIGHT
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:
@@ -129,20 +178,14 @@ class GameView(arcade.View):
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = False
 
-    def _spawn_enemies(self):
-        """Создаёт врагов на карте."""
-        for _ in range(3):
-            goblin = Goblin()
-            while True:
-                spawn_x = random.randint(50, SCREEN_WIDTH - 50)
-                spawn_y = random.randint(50, SCREEN_HEIGHT - 50)
+    def _check_bounds(self, sprite):
+        """Ограничивает движение спрайта границами экрана."""
+        if sprite.left < 0:
+            sprite.left = 0
+        elif sprite.right > SCREEN_WIDTH:
+            sprite.right = SCREEN_WIDTH
 
-                dx = spawn_x - self.player.center_x
-                dy = spawn_y - self.player.center_y
-                distance = (dx ** 2 + dy ** 2) ** 0.5
-
-                if distance > 150:
-                    break
-
-            goblin.setup(spawn_x, spawn_y)
-            self.enemies_list.append(goblin)
+        if sprite.bottom < 0:
+            sprite.bottom = 0
+        elif sprite.top > SCREEN_HEIGHT:
+            sprite.top = SCREEN_HEIGHT

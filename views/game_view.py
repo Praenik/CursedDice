@@ -63,6 +63,16 @@ class GameView(arcade.View):
 
         self.player_list.update()
 
+        if self.player.left < 0:
+            self.player.left = 0
+        elif self.player.right > SCREEN_WIDTH:
+            self.player.right = SCREEN_WIDTH
+
+        if self.player.bottom < 0:
+            self.player.bottom = 0
+        elif self.player.top > SCREEN_HEIGHT:
+            self.player.top = SCREEN_HEIGHT
+
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:
             self.up = True

@@ -1,6 +1,6 @@
 import arcade
 from constants import *
-from entities.player_classes import Fighter, Ranger, Wizard
+from entities.classes import Fighter, Ranger, Wizard
 
 
 class ClassSelectView(arcade.View):
@@ -211,20 +211,19 @@ class ClassSelectView(arcade.View):
         selected_class = self.classes[self.selected_index]
 
         if selected_class.class_name == "Воин":
-            from entities.player_classes import Fighter
+            from entities.classes import Fighter
             player = Fighter()
         elif selected_class.class_name == "Следопыт":
-            from entities.player_classes import Ranger
+            from entities.classes import Ranger
             player = Ranger()
         else:
-            from entities.player_classes import Wizard
+            from entities.classes import Wizard
             player = Wizard()
 
         print(f"Создан персонаж: {player}")
         print(f"  Статы: {player.stats}")
         print(f"  HP: {player.current_hp}/{player.max_hp}, AC: {player.base_ac}")
 
-        # TODO: Здесь будет переход к GameView с созданным игроком
-        # Пока просто возвращаемся в меню
-        from views.menu_view import MenuView
-        self.window.show_view(MenuView())
+        from views.game_view import GameView
+        game_view = GameView(player)
+        self.window.show_view(game_view)

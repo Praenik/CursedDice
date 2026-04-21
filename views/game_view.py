@@ -1,5 +1,7 @@
+import random
 import arcade
 from constants import *
+from entities.enemies.goblin import Goblin
 from entities.player import Player
 
 
@@ -11,12 +13,14 @@ class GameView(arcade.View):
 
         self.player = player
 
-        # Настраиваем позицию
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
 
         self.player_list = arcade.SpriteList()
         self.player_list.append(self.player)
+
+        self.enemies_list = arcade.SpriteList()
+        self._spawn_enemies()
 
         self.up = False
         self.down = False
@@ -27,6 +31,7 @@ class GameView(arcade.View):
         self.clear()
         arcade.set_background_color(arcade.color.BLACK)
 
+        self.enemies_list.draw()
         self.player_list.draw()
 
         if self.player.is_attacking and hasattr(self.player, 'attack_range'):
@@ -42,6 +47,14 @@ class GameView(arcade.View):
             f"{self.player.class_name} | HP: {self.player.current_hp}/{self.player.max_hp}",
             10,
             SCREEN_HEIGHT - 30,
+            arcade.color.WHITE,
+            16
+        )
+
+        arcade.draw_text(
+            f"Врагов: {len(self.enemies_list)}",
+            10,
+            SCREEN_HEIGHT - 60,
             arcade.color.WHITE,
             16
         )
@@ -63,6 +76,11 @@ class GameView(arcade.View):
 
         self.player_list.update()
 
+        for enemy in self.enemies_list:
+            enemy.update(delta_time, self.player)
+
+        self.enemies_list.update()
+
         if self.player.left < 0:
             self.player.left = 0
         elif self.player.right > SCREEN_WIDTH:
@@ -72,6 +90,17 @@ class GameView(arcade.View):
             self.player.bottom = 0
         elif self.player.top > SCREEN_HEIGHT:
             self.player.top = SCREEN_HEIGHT
+
+        for enemy in self.enemies_list:
+            if enemy.left < 0:
+                enemy.left = 0
+            elif enemy.right > SCREEN_WIDTH:
+                enemy.right = SCREEN_WIDTH
+
+            if enemy.bottom < 0:
+                enemy.bottom = 0
+            elif enemy.top > SCREEN_HEIGHT:
+                enemy.top = SCREEN_HEIGHT
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:
@@ -99,3 +128,21 @@ class GameView(arcade.View):
             self.left = False
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = False
+
+    def _spawn_enemies(self):
+        """Создаёт врагов на карте."""
+        for _ in range(3):
+            goblin = Goblin()
+            while True:
+                spawn_x = random.randint(50, SCREEN_WIDTH - 50)
+                spawn_y = random.randint(50, SCREEN_HEIGHT - 50)
+
+                dx = spawn_x - self.player.center_x
+                dy = spawn_y - self.player.center_y
+                distance = (dx ** 2 + dy ** 2) ** 0.5
+
+                if distance > 150:
+                    break
+
+            goblin.setup(spawn_x, spawn_y)
+            self.enemies_list.append(goblin)

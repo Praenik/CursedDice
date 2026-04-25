@@ -22,7 +22,12 @@ class Player(Entity, arcade.Sprite):
 
     def update(self, delta_time: float = 1 / 60):
         """Обновление состояния."""
-        # Обновление позиции через Sprite
+        if not self.is_alive():
+            self.color = arcade.color.GRAY
+            self.change_x = 0
+            self.change_y = 0
+            return
+
         super().update()
 
         # Обновление таймера атаки
@@ -32,7 +37,10 @@ class Player(Entity, arcade.Sprite):
                 self.is_attacking = False
 
     def attack(self):
-        """Выполнить атаку. Переопределяется в дочерних классах."""
+        if self.can_attack():
+            self.is_attacking = True
+            self.attack_timer = self.attack_cooldown
+            return True
         return False
 
     def can_attack(self):

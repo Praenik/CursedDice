@@ -12,6 +12,7 @@ class GameView(arcade.View):
         super().__init__()
 
         self.player = player
+        self.game_over = False
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
 
@@ -50,6 +51,25 @@ class GameView(arcade.View):
 
         self.enemies_list.draw()
         self.player_list.draw()
+
+        if self.game_over:
+            arcade.draw_text(
+                "ИГРА ОКОНЧЕНА",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT / 2,
+                arcade.color.RED,
+                font_size=50,
+                anchor_x="center",
+                font_name="Kenney Future"
+            )
+            arcade.draw_text(
+                "Нажмите ESC для выхода в меню",
+                SCREEN_WIDTH / 2,
+                SCREEN_HEIGHT / 2 - 60,
+                arcade.color.WHITE,
+                font_size=20,
+                anchor_x="center"
+            )
 
         if self.player.is_attacking and hasattr(self.player, 'attack_range'):
             arcade.draw_circle_outline(
@@ -102,8 +122,18 @@ class GameView(arcade.View):
         )
         player_physics.update()
 
-        self.player_list.update()
         self.enemies_list.update()
+
+        for enemy in self.enemies_list:
+            enemy.update(player=self.player, enemies_list=self.enemies_list, delta_time=delta_time)
+
+        if not self.player.is_alive():
+            self.game_over = True
+
+        self.player_list.update()
+
+        for enemy in self.enemies_list:
+            enemy.update(delta_time=delta_time, player=self.player)
 
         # Ограничение границами окна
         self._clamp_to_bounds(self.player)
@@ -152,6 +182,12 @@ class GameView(arcade.View):
             sprite.top = SCREEN_HEIGHT
 
     def on_key_press(self, key, modifiers):
+        if self.game_over:
+            if key == arcade.key.ESCAPE:
+                from views.menu_view import MenuView
+                self.window.show_view(MenuView())
+            return
+
         if key == arcade.key.W or key == arcade.key.UP:
             self.up = True
         elif key == arcade.key.S or key == arcade.key.DOWN:
@@ -161,9 +197,14 @@ class GameView(arcade.View):
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = True
         elif key == arcade.key.SPACE:
-            if self.player.can_attack():
-                self.player.attack()
-                print(f"Атака! Урон: {self.player.get_attack_damage()}")
+            if self.player.attack():
+                attack_range = self.player.attack_range
+                damage = self.player.get_attack_damage()
+                for enemy in self.enemies_list:
+                    if enemy.is_alive():
+                        distance = arcade.get_distance_between_sprites(self.player, enemy)
+                        if distance <= attack_range:
+                            enemy.take_damage(damage)
         elif key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
             self.window.show_view(MenuView())

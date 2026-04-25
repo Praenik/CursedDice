@@ -16,6 +16,15 @@ class Enemy(Entity, arcade.Sprite):
         self.wander_range = 100
         self.current_speed = self.base_speed * 0.5
 
+        self.attack_damage = 5
+        self.attack_cooldown = 3.0
+        self.attack_timer = 0.0
+        self.attack_range = 50
+
+        self.is_dying = False
+        self.death_timer = 0.0
+        self.death_duration = 1.0
+
         self.spawn_x = 0
         self.spawn_y = 0
         self.state = "wander"
@@ -30,15 +39,47 @@ class Enemy(Entity, arcade.Sprite):
         self.center_y = y
 
     def update(self, delta_time: float = 1 / 60, player=None, enemies_list=None):
-        # Сбрасываем скорость
+        if player and not player.is_alive():
+            self.change_x = 0
+            self.change_y = 0
+            self.color = arcade.color.GRAY
+            return
+
+        if not self.is_alive():
+            self.change_x = 0
+            self.change_y = 0
+
+            if not self.is_dying:
+                self.is_dying = True
+                self.death_timer = self.death_duration
+                self.color = arcade.color.GRAY
+
+            if self.is_dying:
+                self.death_timer -= delta_time
+                if self.death_timer <= 0:
+                    self.kill()
+
+            super().update()
+            return
+
         self.change_x = 0
         self.change_y = 0
+
+        if self.attack_timer > 0:
+            self.attack_timer -= delta_time
+
+        if player and player.is_alive():
+            distance = arcade.get_distance_between_sprites(self, player)
+
+            if distance <= self.attack_range and self.attack_timer <= 0:
+                player.take_damage(self.attack_damage)
+                self.attack_timer = self.attack_cooldown
+                print(f"{self.name} достал вас! Дистанция: {distance:.1f}")
 
         if player is not None:
             distance_to_player = self._distance_to(player)
             distance_to_spawn = self._distance_to_point(self.spawn_x, self.spawn_y)
 
-            # Логика смены состояний
             if distance_to_player <= self.detection_range:
                 self.state = "chase"
             elif self.state == "chase" and distance_to_player > self.detection_range * 1.2:
@@ -46,26 +87,30 @@ class Enemy(Entity, arcade.Sprite):
             elif self.state == "return" and distance_to_spawn < 10:
                 self.state = "wander"
 
-            # Устанавливаем скорость в зависимости от состояния
             if self.state == "chase":
                 self.current_speed = self.base_speed
                 self._move_towards_player(player)
             elif self.state == "return":
                 self.current_speed = self.base_speed * 2.0
                 self._move_towards_point(self.spawn_x, self.spawn_y)
-            else:  # wander
+            else:
                 self.current_speed = self.base_speed * 0.5
                 self._wander(delta_time)
 
-        # Расталкивание с другими врагами
         if enemies_list is not None:
             self._apply_separation_from_enemies(enemies_list)
 
-        # Расталкивание с игроком (враг отступает, игрока не толкает)
         if player is not None:
             self._apply_separation_from_player(player)
 
         super().update(delta_time)
+
+    def attack_player(self, player):
+        """Метод нанесения урона игроку."""
+        if self.attack_timer <= 0:
+            player.take_damage(self.attack_damage)
+            self.attack_timer = self.attack_cooldown
+            print(f"Враг ударил игрока! У игрока осталось {player.current_hp} HP")
 
     def _apply_separation_from_enemies(self, enemies_list):
         """Враг отталкивается от других врагов."""

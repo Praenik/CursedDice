@@ -50,6 +50,10 @@ class GameView(arcade.View):
         arcade.set_background_color(arcade.color.BLACK)
 
         self.enemies_list.draw()
+
+        for enemy in self.enemies_list:
+            enemy.draw_health_bar()
+
         self.player_list.draw()
 
         if self.game_over:

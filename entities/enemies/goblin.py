@@ -17,7 +17,7 @@ class Goblin(Enemy):
         }
         super().__init__(name, stats)
 
-        self.base_speed = 2.5  # Базовая скорость гоблина
+        self.base_speed = 1  # Базовая скорость гоблина
         self.detection_range = 250
         self.wander_range = 120
         self.color = (100, 200, 100)  # Зелёный

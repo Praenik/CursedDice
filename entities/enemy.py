@@ -11,7 +11,7 @@ class Enemy(Entity, arcade.Sprite):
         Entity.__init__(self, name, stats)
         arcade.Sprite.__init__(self)
 
-        self.base_speed = 2
+        self.base_speed = 0.8
         self.detection_range = 300
         self.wander_range = 100
         self.current_speed = self.base_speed * 0.5
@@ -178,3 +178,29 @@ class Enemy(Entity, arcade.Sprite):
         wander_speed = self.base_speed * 0.5
         self.change_x += self.wander_direction[0] * wander_speed
         self.change_y += self.wander_direction[1] * wander_speed
+
+    def draw_health_bar(self):
+        """Отрисовка полоски здоровья над головой врага"""
+        if not self.is_alive():
+            return
+
+        bar_width = 40
+        bar_height = 6
+        y_offset = 35
+
+        health_percent = max(0, self.current_hp) / self.max_hp
+        current_bar_width = bar_width * health_percent
+
+        arcade.draw_rect_filled(
+            arcade.XYWH(self.center_x, self.center_y + y_offset, bar_width, bar_height),
+            arcade.color.RED
+        )
+
+        if current_bar_width > 0:
+            left_edge = self.center_x - (bar_width / 2)
+            green_center_x = left_edge + (current_bar_width / 2)
+
+            arcade.draw_rect_filled(
+                arcade.XYWH(green_center_x, self.center_y + y_offset, current_bar_width, bar_height),
+                arcade.color.GREEN
+            )

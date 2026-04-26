@@ -21,12 +21,13 @@ class Fighter(Player):
         self.class_description = "Мастер клинка и щита. Вынослив и смертоносен в ближнем бою."
         self.color = COLOR_WARRIOR
 
-        self.attack_range = 60  # Радиус атаки в пикселях
-        self.attack_damage = 8  # Базовый урон (1d8)
-        self.attack_cooldown = 0.5  # Секунд между атаками
-        self.attack_timer = 0.0  # Текущий таймер
-        self.is_attacking = False  # Флаг для отображения атаки
-        self.attack_visual_duration = 0.1  # Длительность визуала атаки
+        self.attack_range = 100
+        self.attack_damage = 8
+        self.attack_cooldown = 0.5
+        self.attack_timer = 0.0
+        self.is_attacking = False
+        self.attack_visual_duration = 0.1
+        self.speed = 1
 
         self.texture = self._create_texture()
 

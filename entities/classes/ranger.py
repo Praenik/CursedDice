@@ -2,7 +2,9 @@ import arcade
 from PIL import Image, ImageDraw
 
 from constants import COLOR_RANGER
+from core import dices
 from entities.player import Player
+from entities.projectiles.arrow import Arrow
 
 
 class Ranger(Player):
@@ -17,8 +19,14 @@ class Ranger(Player):
         }
         super().__init__(name, stats)
         self.class_name = "Следопыт"
-        self.class_description = "Меткий стрелок и следопыт. Предпочитает дальний бой и скрытность."
+        self.class_description = "Быстрый стрелок, который держит дистанцию и точно работает по одиночным целям."
         self.color = COLOR_RANGER
+
+        self.attack_range = 180
+        self.attack_damage = 8
+        self.attack_cooldown = 0.4
+        self.speed = 2.0
+
         self.texture = self._create_texture()
 
     def _create_texture(self):
@@ -39,3 +47,13 @@ class Ranger(Player):
             center_y - size,
             self.color,
         )
+
+    def get_attack_damage(self):
+        return dices.roll_dice(self.attack_damage)
+
+    def execute_attack(self, game_view, aim_x, aim_y):
+        arrow = Arrow(self.center_x, self.center_y, aim_x, aim_y, self.get_attack_damage())
+        game_view.player_projectiles.append(arrow)
+
+    def draw_attack_indicator(self, aim_x, aim_y):
+        return

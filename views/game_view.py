@@ -27,6 +27,10 @@ class GameView(arcade.View):
         self.down = False
         self.left = False
         self.right = False
+        self.mouse_x = self.player.center_x + self.player.attack_range
+        self.mouse_y = self.player.center_y
+        self.attack_dir_x = None
+        self.attack_dir_y = None
 
     def _spawn_enemies(self):
         for _ in range(3):
@@ -75,13 +79,8 @@ class GameView(arcade.View):
             )
 
         if self.player.is_attacking:
-            arcade.draw_circle_outline(
-                self.player.center_x,
-                self.player.center_y,
-                self.player.attack_range,
-                arcade.color.WHITE,
-                2,
-            )
+            aim_x, aim_y = self._get_attack_aim()
+            self.player.draw_attack_indicator(aim_x, aim_y)
 
         arcade.draw_text(
             f"{self.player.class_name} | HP: {self.player.current_hp}/{self.player.max_hp}",
@@ -115,6 +114,10 @@ class GameView(arcade.View):
 
         self.player.update(delta_time)
         self.player_physics.update()
+
+        if not self.player.is_attacking:
+            self.attack_dir_x = None
+            self.attack_dir_y = None
 
         for enemy in self.enemies_list:
             enemy.update(
@@ -159,16 +162,49 @@ class GameView(arcade.View):
             self.right = True
         elif key == arcade.key.SPACE:
             if self.player.attack():
+                self._lock_attack_direction()
                 damage = self.player.get_attack_damage()
-                for enemy in self.enemies_list:
-                    if enemy.is_alive():
-                        distance = arcade.get_distance_between_sprites(self.player, enemy)
-                        if distance <= self.player.attack_range:
-                            enemy.take_damage(damage)
+                aim_x, aim_y = self._get_attack_aim()
+                targets = self.player.get_attack_targets(
+                    self.enemies_list,
+                    aim_x,
+                    aim_y,
+                )
+                for enemy in targets:
+                    enemy.take_damage(damage)
         elif key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
 
             self.window.show_view(MenuView())
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        self.mouse_x = x
+        self.mouse_y = y
+
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        self.mouse_x = x
+        self.mouse_y = y
+
+    def _get_attack_aim(self):
+        if self.attack_dir_x is not None and self.attack_dir_y is not None:
+            return (
+                self.player.center_x + self.attack_dir_x * self.player.attack_range,
+                self.player.center_y + self.attack_dir_y * self.player.attack_range,
+            )
+        return self.mouse_x, self.mouse_y
+
+    def _lock_attack_direction(self):
+        dx = self.mouse_x - self.player.center_x
+        dy = self.mouse_y - self.player.center_y
+        distance = (dx ** 2 + dy ** 2) ** 0.5
+
+        if distance == 0:
+            self.attack_dir_x = 1.0
+            self.attack_dir_y = 0.0
+            return
+
+        self.attack_dir_x = dx / distance
+        self.attack_dir_y = dy / distance
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:

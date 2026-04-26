@@ -45,5 +45,23 @@ class Player(Entity, arcade.Sprite):
     def get_attack_damage(self):
         return 0
 
+    def get_attack_targets(self, enemies, aim_x, aim_y):
+        targets = []
+        for enemy in enemies:
+            if not enemy.is_alive():
+                continue
+            if arcade.get_distance_between_sprites(self, enemy) <= self.attack_range:
+                targets.append(enemy)
+        return targets
+
+    def draw_attack_indicator(self, aim_x, aim_y):
+        arcade.draw_circle_outline(
+            self.center_x,
+            self.center_y,
+            self.attack_range,
+            arcade.color.WHITE,
+            2,
+        )
+
     def draw_preview(self, center_x, center_y):
         return

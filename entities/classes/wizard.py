@@ -38,7 +38,8 @@ class Wizard(Player):
         arcade.draw_circle_filled(center_x, center_y, 40, self.color)
 
     def get_attack_damage(self):
-        return dices.roll_dice(self.attack_damage)
+        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("intelligence"))
+        return total_damage
 
     def execute_attack(self, game_view, aim_x, aim_y):
         fireball = Fireball(self.center_x, self.center_y, aim_x, aim_y, self.get_attack_damage())

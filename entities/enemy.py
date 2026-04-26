@@ -1,3 +1,4 @@
+from core import dices
 from entities.entity import Entity
 import arcade
 import math
@@ -16,7 +17,7 @@ class Enemy(Entity, arcade.Sprite):
         self.wander_range = 100
         self.current_speed = self.base_speed * 0.5
 
-        self.attack_damage = 5
+        self.attack_damage = 6
         self.attack_cooldown = 3.0
         self.attack_timer = 0.0
         self.attack_range = 50
@@ -72,9 +73,7 @@ class Enemy(Entity, arcade.Sprite):
             distance = arcade.get_distance_between_sprites(self, player)
 
             if distance <= self.attack_range and self.attack_timer <= 0:
-                player.take_damage(self.attack_damage)
-                self.attack_timer = self.attack_cooldown
-                print(f"{self.name} достал вас! Дистанция: {distance:.1f}")
+                self.attack_player(player)
 
         if player is not None:
             distance_to_player = self._distance_to(player)
@@ -108,7 +107,7 @@ class Enemy(Entity, arcade.Sprite):
     def attack_player(self, player):
         """Метод нанесения урона игроку."""
         if self.attack_timer <= 0:
-            player.take_damage(self.attack_damage)
+            player.take_damage(dices.roll_dice(self.attack_damage))
             self.attack_timer = self.attack_cooldown
             print(f"Враг ударил игрока! У игрока осталось {player.current_hp} HP")
 

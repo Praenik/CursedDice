@@ -1,7 +1,9 @@
-from constants import COLOR_WARRIOR
-from entities.player import Player
 import arcade
 from PIL import Image, ImageDraw
+
+from constants import COLOR_WARRIOR
+from core import dices
+from entities.player import Player
 
 
 class Fighter(Player):
@@ -60,7 +62,5 @@ class Fighter(Player):
 
     def get_attack_damage(self):
         """Рассчитывает урон атаки (1d8 + модификатор силы)."""
-        import random
-        base_damage = random.randint(1, self.attack_damage)
-        total_damage = base_damage + self.get_modifier('strength')
-        return max(1, total_damage)  # Минимум 1 урон
+        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier('strength'))
+        return max(1, total_damage)

@@ -127,16 +127,5 @@ class Entity:
 
         return self.current_hp > 0
 
-    def roll_initiative(self):
-        """
-        Бросок инициативы для боя.
-
-        Returns:
-            int: Результат броска d20 + модификатор ловкости
-        """
-
-        import random
-        return random.randint(1, 20) + self.initiative
-
     def __repr__(self):
         return f"Entity(name='{self.name}', hp={self.current_hp}/{self.max_hp}, stats={self.stats})"

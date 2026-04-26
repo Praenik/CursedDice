@@ -7,16 +7,14 @@ from entities.player import Player
 
 
 class Fighter(Player):
-    """Воин — мастер ближнего боя с высокими HP и AC."""
-
     def __init__(self, name="Воин"):
         stats = {
-            'strength': 16,
-            'dexterity': 12,
-            'constitution': 16,
-            'intelligence': 8,
-            'wisdom': 10,
-            'charisma': 10
+            "strength": 16,
+            "dexterity": 12,
+            "constitution": 16,
+            "intelligence": 8,
+            "wisdom": 10,
+            "charisma": 10,
         }
         super().__init__(name, stats)
         self.class_name = "Воин"
@@ -25,42 +23,25 @@ class Fighter(Player):
 
         self.attack_range = 100
         self.attack_damage = 8
-        self.attack_cooldown = 0.5
-        self.attack_timer = 0.0
-        self.is_attacking = False
-        self.attack_visual_duration = 0.1
         self.speed = 1
 
         self.texture = self._create_texture()
 
     def _create_texture(self):
-        """Создаёт текстуру для класса (красный квадрат)."""
-        img = Image.new('RGBA', (40, 40), (0, 0, 0, 0))
+        img = Image.new("RGBA", (40, 40), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         draw.rectangle([(0, 0), (39, 39)], fill=self.color, outline=(255, 255, 255), width=2)
         return arcade.Texture(img)
 
-    def update(self, delta_time: float = 1 / 60):
-        """Обновление состояния Воина."""
-        super().update(delta_time)
-
-        # Дополнительная логика для Воина (если понадобится)
-        pass
-
-    def attack(self):
-        """Выполнить атаку."""
-        if self.attack_timer > 0:
-            return False
-
-        self.attack_timer = self.attack_cooldown
-        self.is_attacking = True
-        return True
-
-    def can_attack(self):
-        """Проверяет, можно ли атаковать."""
-        return self.attack_timer <= 0
+    def draw_preview(self, center_x, center_y):
+        arcade.draw_lbwh_rectangle_filled(
+            center_x - 40,
+            center_y - 40,
+            80,
+            80,
+            self.color,
+        )
 
     def get_attack_damage(self):
-        """Рассчитывает урон атаки (1d8 + модификатор силы)."""
-        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier('strength'))
+        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
         return max(1, total_damage)

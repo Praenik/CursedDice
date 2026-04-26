@@ -1,10 +1,9 @@
 import arcade
-from constants import *
+
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class MenuView(arcade.View):
-    """Главное меню игры."""
-
     def __init__(self):
         super().__init__()
         self.selected_index = -1
@@ -22,13 +21,13 @@ class MenuView(arcade.View):
             64,
             anchor_x="center",
             font_name="Arial",
-            bold=True
+            bold=True,
         )
 
-        for i, item in enumerate(self.menu_items):
-            y = SCREEN_HEIGHT // 2 - i * 60
+        for index, item in enumerate(self.menu_items):
+            y = SCREEN_HEIGHT // 2 - index * 60
 
-            if i == self.selected_index:
+            if index == self.selected_index:
                 color = arcade.color.YELLOW
                 arcade.draw_text(
                     ">",
@@ -36,7 +35,7 @@ class MenuView(arcade.View):
                     y,
                     color,
                     36,
-                    anchor_x="center"
+                    anchor_x="center",
                 )
             else:
                 color = arcade.color.LIGHT_GRAY
@@ -47,28 +46,29 @@ class MenuView(arcade.View):
                 y,
                 color,
                 36,
-                anchor_x="center"
+                anchor_x="center",
             )
 
     def on_mouse_motion(self, x, y, dx, dy):
-        for i, item in enumerate(self.menu_items):
-            item_y = SCREEN_HEIGHT // 2 - i * 60
+        for index, _item in enumerate(self.menu_items):
+            item_y = SCREEN_HEIGHT // 2 - index * 60
             if abs(y - item_y) < 30:
-                self.selected_index = i
+                self.selected_index = index
                 break
 
     def on_mouse_press(self, x, y, button, modifiers):
         if button == arcade.MOUSE_BUTTON_LEFT:
-            for i, item in enumerate(self.menu_items):
-                item_y = SCREEN_HEIGHT // 2 - i * 60
+            for index, _item in enumerate(self.menu_items):
+                item_y = SCREEN_HEIGHT // 2 - index * 60
                 item_x = SCREEN_WIDTH // 2
-                if (abs(x - item_x) < 150 and abs(y - item_y) < 30):
-                    self.selected_index = i
+                if abs(x - item_x) < 150 and abs(y - item_y) < 30:
+                    self.selected_index = index
                     self.select_option()
 
     def select_option(self):
         if self.selected_index == 0:
             from views.class_select_view import ClassSelectView
+
             self.window.show_view(ClassSelectView())
         elif self.selected_index == 1:
             arcade.close_window()

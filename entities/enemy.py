@@ -1,20 +1,19 @@
-from core import dices
-from entities.entity import Entity
-import arcade
 import math
 import random
 
+import arcade
+
+from core import dices
+from entities.entity import Entity
+
 
 class Enemy(Entity, arcade.Sprite):
-    """Базовый класс для всех врагов."""
-
     def __init__(self, name="Враг", stats=None):
         Entity.__init__(self, name, stats)
         arcade.Sprite.__init__(self)
 
         self.base_speed = 0.8
         self.detection_range = 300
-        self.wander_range = 100
         self.current_speed = self.base_speed * 0.5
 
         self.attack_damage = 6
@@ -71,7 +70,6 @@ class Enemy(Entity, arcade.Sprite):
 
         if player and player.is_alive():
             distance = arcade.get_distance_between_sprites(self, player)
-
             if distance <= self.attack_range and self.attack_timer <= 0:
                 self.attack_player(player)
 
@@ -88,7 +86,7 @@ class Enemy(Entity, arcade.Sprite):
 
             if self.state == "chase":
                 self.current_speed = self.base_speed
-                self._move_towards_player(player)
+                self._move_towards_point(player.center_x, player.center_y)
             elif self.state == "return":
                 self.current_speed = self.base_speed * 2.0
                 self._move_towards_point(self.spawn_x, self.spawn_y)
@@ -105,16 +103,15 @@ class Enemy(Entity, arcade.Sprite):
         super().update(delta_time)
 
     def attack_player(self, player):
-        """Метод нанесения урона игроку."""
         if self.attack_timer <= 0:
             player.take_damage(dices.roll_dice(self.attack_damage))
             self.attack_timer = self.attack_cooldown
 
     def _apply_separation_from_enemies(self, enemies_list):
-        """Враг отталкивается от других врагов."""
         for other in enemies_list:
             if other is self:
                 continue
+
             dx = self.center_x - other.center_x
             dy = self.center_y - other.center_y
             distance = math.sqrt(dx ** 2 + dy ** 2)
@@ -128,7 +125,6 @@ class Enemy(Entity, arcade.Sprite):
                 self.change_y += dy * strength
 
     def _apply_separation_from_player(self, player):
-        """Враг отталкивается от игрока (игрок остаётся на месте)."""
         dx = self.center_x - player.center_x
         dy = self.center_y - player.center_y
         distance = math.sqrt(dx ** 2 + dy ** 2)
@@ -141,18 +137,15 @@ class Enemy(Entity, arcade.Sprite):
             self.change_x += dx * strength
             self.change_y += dy * strength
 
-    def _distance_to(self, other) -> float:
+    def _distance_to(self, other):
         dx = other.center_x - self.center_x
         dy = other.center_y - self.center_y
         return math.sqrt(dx ** 2 + dy ** 2)
 
-    def _distance_to_point(self, x, y) -> float:
+    def _distance_to_point(self, x, y):
         dx = x - self.center_x
         dy = y - self.center_y
         return math.sqrt(dx ** 2 + dy ** 2)
-
-    def _move_towards_player(self, player):
-        self._move_towards_point(player.center_x, player.center_y)
 
     def _move_towards_point(self, target_x, target_y):
         dx = target_x - self.center_x
@@ -178,7 +171,6 @@ class Enemy(Entity, arcade.Sprite):
         self.change_y += self.wander_direction[1] * wander_speed
 
     def draw_health_bar(self):
-        """Отрисовка полоски здоровья над головой врага"""
         if not self.is_alive():
             return
 
@@ -191,14 +183,13 @@ class Enemy(Entity, arcade.Sprite):
 
         arcade.draw_rect_filled(
             arcade.XYWH(self.center_x, self.center_y + y_offset, bar_width, bar_height),
-            arcade.color.RED
+            arcade.color.RED,
         )
 
         if current_bar_width > 0:
             left_edge = self.center_x - (bar_width / 2)
             green_center_x = left_edge + (current_bar_width / 2)
-
             arcade.draw_rect_filled(
                 arcade.XYWH(green_center_x, self.center_y + y_offset, current_bar_width, bar_height),
-                arcade.color.GREEN
+                arcade.color.GREEN,
             )

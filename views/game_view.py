@@ -1,13 +1,13 @@
 import random
+
 import arcade
-from constants import *
+
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from entities.enemies.goblin import Goblin
 from entities.player import Player
 
 
 class GameView(arcade.View):
-    """Основной игровой вид."""
-
     def __init__(self, player: Player):
         super().__init__()
 
@@ -21,6 +21,7 @@ class GameView(arcade.View):
 
         self.enemies_list = arcade.SpriteList()
         self._spawn_enemies()
+        self.player_physics = arcade.PhysicsEngineSimple(self.player, self.enemies_list)
 
         self.up = False
         self.down = False
@@ -28,7 +29,6 @@ class GameView(arcade.View):
         self.right = False
 
     def _spawn_enemies(self):
-        """Создаёт врагов на карте."""
         for _ in range(3):
             goblin = Goblin()
             while True:
@@ -50,7 +50,6 @@ class GameView(arcade.View):
         arcade.set_background_color(arcade.color.BLACK)
 
         self.enemies_list.draw()
-
         for enemy in self.enemies_list:
             enemy.draw_health_bar()
 
@@ -64,7 +63,7 @@ class GameView(arcade.View):
                 arcade.color.RED,
                 font_size=50,
                 anchor_x="center",
-                font_name="Kenney Future"
+                font_name="Kenney Future",
             )
             arcade.draw_text(
                 "Нажмите ESC для выхода в меню",
@@ -72,16 +71,16 @@ class GameView(arcade.View):
                 SCREEN_HEIGHT / 2 - 60,
                 arcade.color.WHITE,
                 font_size=20,
-                anchor_x="center"
+                anchor_x="center",
             )
 
-        if self.player.is_attacking and hasattr(self.player, 'attack_range'):
+        if self.player.is_attacking:
             arcade.draw_circle_outline(
                 self.player.center_x,
                 self.player.center_y,
                 self.player.attack_range,
                 arcade.color.WHITE,
-                2
+                2,
             )
 
         arcade.draw_text(
@@ -89,7 +88,7 @@ class GameView(arcade.View):
             10,
             SCREEN_HEIGHT - 30,
             arcade.color.WHITE,
-            16
+            16,
         )
 
         arcade.draw_text(
@@ -97,84 +96,41 @@ class GameView(arcade.View):
             10,
             SCREEN_HEIGHT - 60,
             arcade.color.WHITE,
-            16
+            16,
         )
 
     def on_update(self, delta_time):
-        self.player.update(delta_time)
-
         self.player.change_x = 0
         self.player.change_y = 0
 
-        if self.up:
-            self.player.change_y = self.player.speed * delta_time * 60
-        if self.down:
-            self.player.change_y = -self.player.speed * delta_time * 60
-        if self.left:
-            self.player.change_x = -self.player.speed * delta_time * 60
-        if self.right:
-            self.player.change_x = self.player.speed * delta_time * 60
+        if not self.game_over:
+            if self.up:
+                self.player.change_y += self.player.speed
+            if self.down:
+                self.player.change_y -= self.player.speed
+            if self.left:
+                self.player.change_x -= self.player.speed
+            if self.right:
+                self.player.change_x += self.player.speed
 
-        # Обновление врагов (один раз, с передачей всех нужных параметров)
-        for enemy in self.enemies_list:
-            enemy.update(delta_time, player=self.player, enemies_list=self.enemies_list)
-
-        # Коллизия: игрок не проходит сквозь врагов
-        player_physics = arcade.PhysicsEngineSimple(
-            self.player,
-            self.enemies_list
-        )
-        player_physics.update()
-
-        self.enemies_list.update()
+        self.player.update(delta_time)
+        self.player_physics.update()
 
         for enemy in self.enemies_list:
-            enemy.update(player=self.player, enemies_list=self.enemies_list, delta_time=delta_time)
+            enemy.update(
+                delta_time=delta_time,
+                player=self.player,
+                enemies_list=self.enemies_list,
+            )
 
         if not self.player.is_alive():
             self.game_over = True
 
-        self.player_list.update()
-
-        for enemy in self.enemies_list:
-            enemy.update(delta_time=delta_time, player=self.player)
-
-        # Ограничение границами окна
         self._clamp_to_bounds(self.player)
         for enemy in self.enemies_list:
             self._clamp_to_bounds(enemy)
 
-    def _handle_enemy_collisions(self):
-        """Обрабатывает коллизии только между врагами."""
-        for i, enemy1 in enumerate(self.enemies_list):
-            for j, enemy2 in enumerate(self.enemies_list):
-                if i >= j:
-                    continue
-                if arcade.check_for_collision(enemy1, enemy2):
-                    # Раздвигаем врагов, но не позволяем им толкать друг друга слишком сильно
-                    dx = enemy1.center_x - enemy2.center_x
-                    dy = enemy1.center_y - enemy2.center_y
-                    distance = (dx ** 2 + dy ** 2) ** 0.5
-
-                    if distance == 0:
-                        dx = random.uniform(-1, 1)
-                        dy = random.uniform(-1, 1)
-                        distance = (dx ** 2 + dy ** 2) ** 0.5
-
-                    dx /= distance
-                    dy /= distance
-
-                    min_distance = (enemy1.width / 2 + enemy2.width / 2)
-                    overlap = min_distance - distance
-
-                    if overlap > 0:
-                        enemy1.center_x += dx * overlap * 0.5
-                        enemy1.center_y += dy * overlap * 0.5
-                        enemy2.center_x -= dx * overlap * 0.5
-                        enemy2.center_y -= dy * overlap * 0.5
-
     def _clamp_to_bounds(self, sprite):
-        """Ограничивает спрайт границами окна."""
         if sprite.left < 0:
             sprite.left = 0
         elif sprite.right > SCREEN_WIDTH:
@@ -189,6 +145,7 @@ class GameView(arcade.View):
         if self.game_over:
             if key == arcade.key.ESCAPE:
                 from views.menu_view import MenuView
+
                 self.window.show_view(MenuView())
             return
 
@@ -202,15 +159,15 @@ class GameView(arcade.View):
             self.right = True
         elif key == arcade.key.SPACE:
             if self.player.attack():
-                attack_range = self.player.attack_range
                 damage = self.player.get_attack_damage()
                 for enemy in self.enemies_list:
                     if enemy.is_alive():
                         distance = arcade.get_distance_between_sprites(self.player, enemy)
-                        if distance <= attack_range:
+                        if distance <= self.player.attack_range:
                             enemy.take_damage(damage)
         elif key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
+
             self.window.show_view(MenuView())
 
     def on_key_release(self, key, modifiers):
@@ -222,15 +179,3 @@ class GameView(arcade.View):
             self.left = False
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = False
-
-    def _check_bounds(self, sprite):
-        """Ограничивает движение спрайта границами экрана."""
-        if sprite.left < 0:
-            sprite.left = 0
-        elif sprite.right > SCREEN_WIDTH:
-            sprite.right = SCREEN_WIDTH
-
-        if sprite.bottom < 0:
-            sprite.bottom = 0
-        elif sprite.top > SCREEN_HEIGHT:
-            sprite.top = SCREEN_HEIGHT

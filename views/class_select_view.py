@@ -1,27 +1,25 @@
 import arcade
-from constants import *
+
+from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from entities.classes import Fighter, Ranger, Wizard
 
 
 class ClassSelectView(arcade.View):
-    """Экран выбора класса персонажа."""
-
     def __init__(self):
         super().__init__()
 
         self.classes = [
             Fighter(),
             Ranger(),
-            Wizard()
+            Wizard(),
         ]
 
-        self.selected_index = -1  # Ничего не выбрано по умолчанию
-
+        self.selected_index = -1
         self.column_width = SCREEN_WIDTH // 3
         self.column_centers = [
             self.column_width // 2,
             self.column_width + self.column_width // 2,
-            2 * self.column_width + self.column_width // 2
+            2 * self.column_width + self.column_width // 2,
         ]
 
     def on_draw(self):
@@ -35,7 +33,7 @@ class ClassSelectView(arcade.View):
             arcade.color.GOLD,
             48,
             anchor_x="center",
-            bold=True
+            bold=True,
         )
 
         arcade.draw_text(
@@ -44,11 +42,11 @@ class ClassSelectView(arcade.View):
             30,
             arcade.color.LIGHT_GRAY,
             18,
-            anchor_x="center"
+            anchor_x="center",
         )
 
-        for i, char_class in enumerate(self.classes):
-            self.draw_class_card(i, char_class, i == self.selected_index)
+        for index, char_class in enumerate(self.classes):
+            self.draw_class_card(index, char_class, index == self.selected_index)
 
     def draw_class_card(self, index, char_class, is_selected):
         center_x = self.column_centers[index]
@@ -59,20 +57,19 @@ class ClassSelectView(arcade.View):
                 SCREEN_HEIGHT // 2 - 225,
                 self.column_width - 20,
                 450,
-                (60, 60, 80, 200)
+                (60, 60, 80, 200),
             )
             border_color = arcade.color.GOLD
         else:
             border_color = arcade.color.GRAY
 
-        # Рамка
         arcade.draw_lbwh_rectangle_outline(
             center_x - (self.column_width - 20) // 2,
             SCREEN_HEIGHT // 2 - 225,
             self.column_width - 20,
             450,
             border_color,
-            3
+            3,
         )
 
         arcade.draw_text(
@@ -82,33 +79,10 @@ class ClassSelectView(arcade.View):
             arcade.color.WHITE,
             28,
             anchor_x="center",
-            bold=True
+            bold=True,
         )
 
-        shape_y = SCREEN_HEIGHT - 280
-        if char_class.class_name == "Воин":
-            # Красный квадрат
-            arcade.draw_lbwh_rectangle_filled(
-                center_x - 40,
-                shape_y - 40,
-                80,
-                80,
-                char_class.color
-            )
-        elif char_class.class_name == "Следопыт":
-            # Зелёный треугольник
-            size = 50
-            arcade.draw_triangle_filled(
-                center_x, shape_y + size,
-                          center_x - size, shape_y - size,
-                          center_x + size, shape_y - size,
-                char_class.color
-            )
-        elif char_class.class_name == "Волшебник":
-            # Синий круг
-            arcade.draw_circle_filled(
-                center_x, shape_y, 40, char_class.color
-            )
+        char_class.draw_preview(center_x, SCREEN_HEIGHT - 280)
 
         desc_lines = self.wrap_text(char_class.class_description, 25)
         desc_y = SCREEN_HEIGHT - 380
@@ -119,7 +93,7 @@ class ClassSelectView(arcade.View):
                 desc_y,
                 arcade.color.LIGHT_GRAY,
                 14,
-                anchor_x="center"
+                anchor_x="center",
             )
             desc_y -= 20
 
@@ -140,7 +114,7 @@ class ClassSelectView(arcade.View):
             arcade.color.WHITE,
             14,
             anchor_x="center",
-            bold=True
+            bold=True,
         )
         stats_y -= 25
 
@@ -151,7 +125,7 @@ class ClassSelectView(arcade.View):
                 stats_y,
                 arcade.color.LIGHT_GRAY,
                 12,
-                anchor_x="left"
+                anchor_x="left",
             )
             stats_y -= 18
 
@@ -163,11 +137,10 @@ class ClassSelectView(arcade.View):
             arcade.color.LIME,
             14,
             anchor_x="center",
-            bold=True
+            bold=True,
         )
 
     def wrap_text(self, text, max_chars):
-        """Перенос текста по словам."""
         words = text.split()
         lines = []
         current_line = []
@@ -190,6 +163,7 @@ class ClassSelectView(arcade.View):
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
+
             self.window.show_view(MenuView())
 
     def on_mouse_motion(self, x, y, dx, dy):
@@ -208,18 +182,8 @@ class ClassSelectView(arcade.View):
         if self.selected_index == -1:
             return
 
-        selected_class = self.classes[self.selected_index]
-
-        if selected_class.class_name == "Воин":
-            from entities.classes import Fighter
-            player = Fighter()
-        elif selected_class.class_name == "Следопыт":
-            from entities.classes import Ranger
-            player = Ranger()
-        else:
-            from entities.classes import Wizard
-            player = Wizard()
+        player = self.classes[self.selected_index]
 
         from views.game_view import GameView
-        game_view = GameView(player)
-        self.window.show_view(game_view)
+
+        self.window.show_view(GameView(player))

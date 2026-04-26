@@ -45,6 +45,12 @@ class Player(Entity, arcade.Sprite):
     def get_attack_damage(self):
         return 0
 
+    def execute_attack(self, game_view, aim_x, aim_y):
+        damage = self.get_attack_damage()
+        targets = self.get_attack_targets(game_view.enemies_list, aim_x, aim_y)
+        for enemy in targets:
+            enemy.take_damage(damage)
+
     def get_attack_targets(self, enemies, aim_x, aim_y):
         targets = []
         for enemy in enemies:

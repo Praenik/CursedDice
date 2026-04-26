@@ -20,6 +20,7 @@ class GameView(arcade.View):
         self.player_list.append(self.player)
 
         self.enemies_list = arcade.SpriteList()
+        self.player_projectiles = arcade.SpriteList()
         self._spawn_enemies()
         self.player_physics = arcade.PhysicsEngineSimple(self.player, self.enemies_list)
 
@@ -57,6 +58,7 @@ class GameView(arcade.View):
         for enemy in self.enemies_list:
             enemy.draw_health_bar()
 
+        self.player_projectiles.draw()
         self.player_list.draw()
 
         if self.game_over:
@@ -126,6 +128,9 @@ class GameView(arcade.View):
                 enemies_list=self.enemies_list,
             )
 
+        for projectile in list(self.player_projectiles):
+            projectile.update(delta_time, self.enemies_list)
+
         if not self.player.is_alive():
             self.game_over = True
 
@@ -163,15 +168,8 @@ class GameView(arcade.View):
         elif key == arcade.key.SPACE:
             if self.player.attack():
                 self._lock_attack_direction()
-                damage = self.player.get_attack_damage()
                 aim_x, aim_y = self._get_attack_aim()
-                targets = self.player.get_attack_targets(
-                    self.enemies_list,
-                    aim_x,
-                    aim_y,
-                )
-                for enemy in targets:
-                    enemy.take_damage(damage)
+                self.player.execute_attack(self, aim_x, aim_y)
         elif key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
 
@@ -187,9 +185,10 @@ class GameView(arcade.View):
 
     def _get_attack_aim(self):
         if self.attack_dir_x is not None and self.attack_dir_y is not None:
+            aim_distance = max(self.player.attack_range, 100)
             return (
-                self.player.center_x + self.attack_dir_x * self.player.attack_range,
-                self.player.center_y + self.attack_dir_y * self.player.attack_range,
+                self.player.center_x + self.attack_dir_x * aim_distance,
+                self.player.center_y + self.attack_dir_y * aim_distance,
             )
         return self.mouse_x, self.mouse_y
 

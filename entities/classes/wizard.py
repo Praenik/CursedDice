@@ -2,7 +2,9 @@ import arcade
 from PIL import Image, ImageDraw
 
 from constants import COLOR_WIZARD
+from core import dices
 from entities.player import Player
+from entities.projectiles.fireball import Fireball
 
 
 class Wizard(Player):
@@ -17,8 +19,13 @@ class Wizard(Player):
         }
         super().__init__(name, stats)
         self.class_name = "Волшебник"
-        self.class_description = "Повелитель тайных знаний и магии. Хрупок, но способен уничтожать врагов заклинаниями."
+        self.class_description = "Повелитель тайных знаний и магии. Хрупок, но опасен на расстоянии."
         self.color = COLOR_WIZARD
+
+        self.attack_damage = 6
+        self.attack_cooldown = 0.5
+        self.speed = 1.5
+
         self.texture = self._create_texture()
 
     def _create_texture(self):
@@ -29,3 +36,13 @@ class Wizard(Player):
 
     def draw_preview(self, center_x, center_y):
         arcade.draw_circle_filled(center_x, center_y, 40, self.color)
+
+    def get_attack_damage(self):
+        return dices.roll_dice(self.attack_damage)
+
+    def execute_attack(self, game_view, aim_x, aim_y):
+        fireball = Fireball(self.center_x, self.center_y, aim_x, aim_y, self.get_attack_damage())
+        game_view.player_projectiles.append(fireball)
+
+    def draw_attack_indicator(self, aim_x, aim_y):
+        return

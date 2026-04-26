@@ -109,7 +109,6 @@ class Enemy(Entity, arcade.Sprite):
         if self.attack_timer <= 0:
             player.take_damage(dices.roll_dice(self.attack_damage))
             self.attack_timer = self.attack_cooldown
-            print(f"Враг ударил игрока! У игрока осталось {player.current_hp} HP")
 
     def _apply_separation_from_enemies(self, enemies_list):
         """Враг отталкивается от других врагов."""

@@ -110,6 +110,9 @@ class Fighter(Player):
         total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
         return max(1, total_damage)
 
+    def get_attack_modifier(self):
+        return self.get_modifier("strength")
+
     def _get_attack_direction(self, aim_x, aim_y):
         dx = aim_x - self.center_x
         dy = aim_y - self.center_y

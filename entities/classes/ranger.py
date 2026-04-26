@@ -52,8 +52,18 @@ class Ranger(Player):
         total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("dexterity"))
         return total_damage
 
+    def get_attack_modifier(self):
+        return self.get_modifier("dexterity")
+
     def execute_attack(self, game_view, aim_x, aim_y):
-        arrow = Arrow(self.center_x, self.center_y, aim_x, aim_y, self.get_attack_damage())
+        arrow = Arrow(
+            self.center_x,
+            self.center_y,
+            aim_x,
+            aim_y,
+            self.get_attack_damage(),
+            self.get_attack_modifier(),
+        )
         game_view.player_projectiles.append(arrow)
 
     def draw_attack_indicator(self, aim_x, aim_y):

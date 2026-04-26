@@ -19,6 +19,8 @@ class Player(Entity, arcade.Sprite):
         self.is_attacking = False
 
     def update(self, delta_time: float = 1 / 60):
+        self.update_combat_feedback(delta_time)
+
         if not self.is_alive():
             self.color = arcade.color.GRAY
             self.change_x = 0
@@ -45,11 +47,15 @@ class Player(Entity, arcade.Sprite):
     def get_attack_damage(self):
         return 0
 
+    def get_attack_modifier(self):
+        return 0
+
     def execute_attack(self, game_view, aim_x, aim_y):
         damage = self.get_attack_damage()
+        attack_bonus = self.get_attack_modifier()
         targets = self.get_attack_targets(game_view.enemies_list, aim_x, aim_y)
         for enemy in targets:
-            enemy.take_damage(damage)
+            enemy.resolve_attack(attack_bonus, damage)
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
         targets = []

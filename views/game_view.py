@@ -57,9 +57,11 @@ class GameView(arcade.View):
         self.enemies_list.draw()
         for enemy in self.enemies_list:
             enemy.draw_health_bar()
+            enemy.draw_combat_feedback()
 
         self.player_projectiles.draw()
         self.player_list.draw()
+        self.player.draw_combat_feedback()
 
         if self.game_over:
             arcade.draw_text(

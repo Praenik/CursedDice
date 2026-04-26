@@ -41,8 +41,18 @@ class Wizard(Player):
         total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("intelligence"))
         return total_damage
 
+    def get_attack_modifier(self):
+        return self.get_modifier("intelligence")
+
     def execute_attack(self, game_view, aim_x, aim_y):
-        fireball = Fireball(self.center_x, self.center_y, aim_x, aim_y, self.get_attack_damage())
+        fireball = Fireball(
+            self.center_x,
+            self.center_y,
+            aim_x,
+            aim_y,
+            self.get_attack_damage(),
+            self.get_attack_modifier(),
+        )
         game_view.player_projectiles.append(fireball)
 
     def draw_attack_indicator(self, aim_x, aim_y):

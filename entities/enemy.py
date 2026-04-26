@@ -39,6 +39,8 @@ class Enemy(Entity, arcade.Sprite):
         self.center_y = y
 
     def update(self, delta_time: float = 1 / 60, player=None, enemies_list=None):
+        self.update_combat_feedback(delta_time)
+
         if player and not player.is_alive():
             self.change_x = 0
             self.change_y = 0
@@ -104,8 +106,12 @@ class Enemy(Entity, arcade.Sprite):
 
     def attack_player(self, player):
         if self.attack_timer <= 0:
-            player.take_damage(dices.roll_dice(self.attack_damage))
+            damage = dices.roll_dice(self.attack_damage)
+            player.resolve_attack(self.get_attack_modifier(), damage)
             self.attack_timer = self.attack_cooldown
+
+    def get_attack_modifier(self):
+        return self.get_modifier("strength")
 
     def _apply_separation_from_enemies(self, enemies_list):
         for other in enemies_list:

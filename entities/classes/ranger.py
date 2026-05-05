@@ -63,6 +63,8 @@ class Ranger(Player):
             aim_y,
             self.get_attack_damage(),
             self.get_attack_modifier(),
+            attacker=self,
+            attack_disadvantage=self.consume_attack_disadvantage(),
         )
         game_view.player_projectiles.append(arrow)
 

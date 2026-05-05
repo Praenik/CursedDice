@@ -1,2 +1,3 @@
-from entities.projectiles.fireball import Fireball
 from entities.projectiles.arrow import Arrow
+from entities.projectiles.bugbear_boulder import BugbearBoulder
+from entities.projectiles.fireball import Fireball

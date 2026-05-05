@@ -7,13 +7,25 @@ from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class Fireball(arcade.Sprite):
-    def __init__(self, start_x, start_y, aim_x, aim_y, damage, attack_bonus):
+    def __init__(
+        self,
+        start_x,
+        start_y,
+        aim_x,
+        aim_y,
+        damage,
+        attack_bonus,
+        attacker=None,
+        attack_disadvantage=False,
+    ):
         super().__init__()
 
         self.center_x = start_x
         self.center_y = start_y
         self.damage = damage
         self.attack_bonus = attack_bonus
+        self.attacker = attacker
+        self.attack_disadvantage = attack_disadvantage
 
         self.speed = 4.5
         self.turn_rate = 4.0
@@ -95,7 +107,12 @@ class Fireball(arcade.Sprite):
 
             collision_distance = (self.width / 2) + (enemy.width / 2)
             if self._distance_to(enemy) <= collision_distance:
-                enemy.resolve_attack(self.attack_bonus, self.damage)
+                enemy.resolve_attack(
+                    self.attack_bonus,
+                    self.damage,
+                    attacker=self.attacker,
+                    disadvantage=self.attack_disadvantage,
+                )
                 self.kill()
                 return
 

@@ -82,12 +82,18 @@ class Entity:
     def get_armor_class(self):
         return self.base_ac
 
-    def is_hit_by(self, attack_bonus):
-        attack_roll = dices.roll_d20(attack_bonus)
+    def is_hit_by(self, attack_bonus, disadvantage=False):
+        if disadvantage:
+            attack_roll = min(
+                dices.roll_d20(attack_bonus),
+                dices.roll_d20(attack_bonus),
+            )
+        else:
+            attack_roll = dices.roll_d20(attack_bonus)
         return attack_roll > self.get_armor_class(), attack_roll
 
-    def resolve_attack(self, attack_bonus, damage):
-        hit, attack_roll = self.is_hit_by(attack_bonus)
+    def resolve_attack(self, attack_bonus, damage, attacker=None, disadvantage=False):
+        hit, attack_roll = self.is_hit_by(attack_bonus, disadvantage)
         if hit:
             self.take_damage(damage)
             self.show_combat_feedback(f"-{damage}", (255, 120, 120))

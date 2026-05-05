@@ -28,6 +28,7 @@ class Enemy(Entity, arcade.Sprite):
         self.spawn_x = 0
         self.spawn_y = 0
         self.state = "wander"
+        self.is_aggroed = False
 
         self.wander_timer = 0
         self.wander_direction = (0, 0)
@@ -79,7 +80,7 @@ class Enemy(Entity, arcade.Sprite):
             distance_to_player = self._distance_to(player)
             distance_to_spawn = self._distance_to_point(self.spawn_x, self.spawn_y)
 
-            if distance_to_player <= self.detection_range:
+            if self.is_aggroed or distance_to_player <= self.detection_range:
                 self.state = "chase"
             elif self.state == "chase" and distance_to_player > self.detection_range * 1.2:
                 self.state = "return"
@@ -109,6 +110,17 @@ class Enemy(Entity, arcade.Sprite):
             damage = dices.roll_dice(self.attack_damage)
             player.resolve_attack(self.get_attack_modifier(), damage)
             self.attack_timer = self.attack_cooldown
+
+    def take_damage(self, damage):
+        previous_hp = self.current_hp
+        is_dead = super().take_damage(damage)
+        if self.current_hp < previous_hp:
+            self._aggro_from_damage()
+        return is_dead
+
+    def _aggro_from_damage(self):
+        self.is_aggroed = True
+        self.state = "chase"
 
     def get_attack_modifier(self):
         return self.get_modifier("strength")

@@ -7,7 +7,7 @@ class MenuView(arcade.View):
     def __init__(self):
         super().__init__()
         self.selected_index = -1
-        self.menu_items = ["Начать игру", "Выход"]
+        self.menu_items = ["Начать игру", "Таблица рекордов", "Выход"]
 
     def on_draw(self):
         self.clear()
@@ -50,6 +50,7 @@ class MenuView(arcade.View):
             )
 
     def on_mouse_motion(self, x, y, dx, dy):
+        self.selected_index = -1
         for index, _item in enumerate(self.menu_items):
             item_y = SCREEN_HEIGHT // 2 - index * 60
             if abs(y - item_y) < 30:
@@ -57,13 +58,16 @@ class MenuView(arcade.View):
                 break
 
     def on_mouse_press(self, x, y, button, modifiers):
-        if button == arcade.MOUSE_BUTTON_LEFT:
-            for index, _item in enumerate(self.menu_items):
-                item_y = SCREEN_HEIGHT // 2 - index * 60
-                item_x = SCREEN_WIDTH // 2
-                if abs(x - item_x) < 150 and abs(y - item_y) < 30:
-                    self.selected_index = index
-                    self.select_option()
+        if button != arcade.MOUSE_BUTTON_LEFT:
+            return
+
+        for index, _item in enumerate(self.menu_items):
+            item_y = SCREEN_HEIGHT // 2 - index * 60
+            item_x = SCREEN_WIDTH // 2
+            if abs(x - item_x) < 180 and abs(y - item_y) < 30:
+                self.selected_index = index
+                self.select_option()
+                break
 
     def select_option(self):
         if self.selected_index == 0:
@@ -71,4 +75,8 @@ class MenuView(arcade.View):
 
             self.window.show_view(ClassSelectView())
         elif self.selected_index == 1:
+            from views.leaderboard_view import LeaderboardView
+
+            self.window.show_view(LeaderboardView())
+        elif self.selected_index == 2:
             arcade.close_window()

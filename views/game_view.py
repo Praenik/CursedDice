@@ -3,6 +3,7 @@ import random
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.leaderboard import add_leaderboard_entry
 from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
 from entities.player import Player
 
@@ -20,6 +21,7 @@ class GameView(arcade.View):
         self.wave_spawn_timer = 0.0
         self.waiting_for_next_wave = False
         self.current_wave_index = -1
+        self.result_saved = False
         self.waves = [
             [Goblin, Goblin, Goblin],
             [Goblin, Goblin, Worg, Worg],
@@ -109,6 +111,7 @@ class GameView(arcade.View):
         self.left = False
         self.right = False
         self.enemy_projectiles = arcade.SpriteList()
+        self._save_run_result()
 
     def _get_alive_enemy_count(self):
         return sum(1 for enemy in self.enemies_list if enemy.is_alive())
@@ -379,7 +382,9 @@ class GameView(arcade.View):
                 projectile.update(delta_time, self.player)
 
         if not self.player.is_alive():
-            self.game_over = True
+            if not self.game_over:
+                self.game_over = True
+                self._save_run_result()
         elif is_playing:
             self._update_wave_state(delta_time)
 
@@ -468,6 +473,20 @@ class GameView(arcade.View):
             self._lock_attack_direction()
             aim_x, aim_y = self._get_attack_aim()
             self.player.execute_attack(self, aim_x, aim_y)
+
+    def _save_run_result(self):
+        if self.result_saved:
+            return
+
+        wave_reached = max(1, self.current_wave_index + 1)
+        result_time = self.completed_time if self.game_completed else self.elapsed_time
+        add_leaderboard_entry(
+            self.player.class_name,
+            self.player.texture_name,
+            result_time,
+            wave_reached,
+        )
+        self.result_saved = True
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:

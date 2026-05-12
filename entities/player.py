@@ -1,4 +1,5 @@
 import math
+from functools import lru_cache
 
 import arcade
 from PIL import Image
@@ -9,6 +10,21 @@ from entities.entity import Entity
 PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
 PLAYER_TEXTURE_MAX_SIZE = 84
 PLAYER_PREVIEW_MAX_SIZE = 160
+
+
+@lru_cache(maxsize=None)
+def load_player_texture_pair(texture_name):
+    texture_path = PLAYER_TEXTURES_DIR / texture_name
+    with Image.open(texture_path) as image:
+        rgba_image = image.convert("RGBA")
+
+    alpha_bbox = rgba_image.getchannel("A").getbbox()
+    if alpha_bbox is not None:
+        rgba_image = rgba_image.crop(alpha_bbox)
+
+    right_image = rgba_image.copy()
+    left_image = rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    return arcade.Texture(right_image), arcade.Texture(left_image)
 
 
 class Player(Entity, arcade.Sprite):
@@ -220,9 +236,8 @@ class Player(Entity, arcade.Sprite):
         )
 
     def set_class_texture(self, texture_name):
-        texture_path = PLAYER_TEXTURES_DIR / texture_name
         self.texture_name = texture_name
-        self.texture_right, self.texture_left = self._load_cropped_textures(texture_path)
+        self.texture_right, self.texture_left = load_player_texture_pair(texture_name)
         self.facing_direction = 1
         self.texture = self.texture_right
         self.sync_hit_box_to_texture()
@@ -231,18 +246,6 @@ class Player(Entity, arcade.Sprite):
             self.texture.height,
             PLAYER_TEXTURE_MAX_SIZE,
         )
-
-    def _load_cropped_textures(self, texture_path):
-        with Image.open(texture_path) as image:
-            rgba_image = image.convert("RGBA")
-
-        alpha_bbox = rgba_image.getchannel("A").getbbox()
-        if alpha_bbox is not None:
-            rgba_image = rgba_image.crop(alpha_bbox)
-
-        right_image = rgba_image.copy()
-        left_image = rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-        return arcade.Texture(right_image), arcade.Texture(left_image)
 
     def _update_facing_direction(self):
         if self.change_x < 0:

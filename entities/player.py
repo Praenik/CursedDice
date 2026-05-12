@@ -1,14 +1,24 @@
 import math
 
 import arcade
+from PIL import Image
 
+from core.resources import resource_path
 from entities.entity import Entity
+
+PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
+PLAYER_TEXTURE_MAX_SIZE = 84
+PLAYER_PREVIEW_MAX_SIZE = 160
 
 
 class Player(Entity, arcade.Sprite):
     def __init__(self, name="Игрок", stats=None):
         Entity.__init__(self, name, stats)
         arcade.Sprite.__init__(self)
+        self.color = arcade.color.WHITE
+        self.texture_right = None
+        self.texture_left = None
+        self.facing_direction = 1
 
         self.class_name = "Авантюрист"
         self.class_description = ""
@@ -28,6 +38,7 @@ class Player(Entity, arcade.Sprite):
         self.short_rest_charges = self.max_short_rest_charges
         self.max_long_rest_charges = 1
         self.long_rest_charges = self.max_long_rest_charges
+        self.texture_name = None
 
     def update(self, delta_time: float = 1 / 60):
         self.update_combat_feedback(delta_time)
@@ -47,6 +58,7 @@ class Player(Entity, arcade.Sprite):
         elif self.is_charmed():
             self._apply_charm_movement()
 
+        self._update_facing_direction()
         super().update()
 
         if self.attack_timer > 0:
@@ -193,4 +205,67 @@ class Player(Entity, arcade.Sprite):
         )
 
     def draw_preview(self, center_x, center_y):
-        return
+        preview_texture = self.texture_right or self.texture
+        if not preview_texture:
+            return
+
+        preview_width, preview_height = self._get_scaled_dimensions(
+            preview_texture.width,
+            preview_texture.height,
+            PLAYER_PREVIEW_MAX_SIZE,
+        )
+        arcade.draw_texture_rect(
+            preview_texture,
+            arcade.XYWH(center_x, center_y, preview_width, preview_height),
+        )
+
+    def set_class_texture(self, texture_name):
+        texture_path = PLAYER_TEXTURES_DIR / texture_name
+        self.texture_name = texture_name
+        self.texture_right, self.texture_left = self._load_cropped_textures(texture_path)
+        self.facing_direction = 1
+        self.texture = self.texture_right
+        self.sync_hit_box_to_texture()
+        self.width, self.height = self._get_scaled_dimensions(
+            self.texture.width,
+            self.texture.height,
+            PLAYER_TEXTURE_MAX_SIZE,
+        )
+
+    def _load_cropped_textures(self, texture_path):
+        with Image.open(texture_path) as image:
+            rgba_image = image.convert("RGBA")
+
+        alpha_bbox = rgba_image.getchannel("A").getbbox()
+        if alpha_bbox is not None:
+            rgba_image = rgba_image.crop(alpha_bbox)
+
+        right_image = rgba_image.copy()
+        left_image = rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        return arcade.Texture(right_image), arcade.Texture(left_image)
+
+    def _update_facing_direction(self):
+        if self.change_x < 0:
+            self._set_facing_direction(-1)
+        elif self.change_x > 0:
+            self._set_facing_direction(1)
+
+    def _set_facing_direction(self, direction):
+        if direction == self.facing_direction:
+            return
+
+        self.facing_direction = direction
+        new_texture = self.texture_right if direction > 0 else self.texture_left
+        if new_texture is None:
+            return
+
+        self.texture = new_texture
+        self.sync_hit_box_to_texture()
+
+    def _get_scaled_dimensions(self, width, height, max_size):
+        largest_side = max(width, height)
+        if largest_side <= 0:
+            return width, height
+
+        scale = max_size / largest_side
+        return width * scale, height * scale

@@ -25,8 +25,8 @@ class Nilbog(Enemy):
 
         self.reversal_available = True
         self.nilbogism_save_dc = 12
-        self.nilbogism_charm_duration = 1.0
-        self.nilbogism_charm_speed_multiplier = 1.0
+        self.nilbogism_charm_duration = 0.5
+        self.nilbogism_charm_speed_multiplier = 0.8
         self.mocking_word_save_dc = 12
 
         self.texture = self._create_texture()

@@ -1,9 +1,7 @@
 import math
 
 import arcade
-from PIL import Image, ImageDraw
 
-from constants import COLOR_WARRIOR
 from core import dices
 from entities.player import Player
 
@@ -21,29 +19,12 @@ class Fighter(Player):
         super().__init__(name, stats)
         self.class_name = "Воин"
         self.class_description = "Мастер клинка и щита. Вынослив и смертоносен в ближнем бою."
-        self.color = COLOR_WARRIOR
-
         self.attack_range = 100
         self.attack_angle = 90
         self.attack_damage = 8
         self.speed = 1
 
-        self.texture = self._create_texture()
-
-    def _create_texture(self):
-        img = Image.new("RGBA", (40, 40), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.rectangle([(0, 0), (39, 39)], fill=self.color, outline=(255, 255, 255), width=2)
-        return arcade.Texture(img)
-
-    def draw_preview(self, center_x, center_y):
-        arcade.draw_lbwh_rectangle_filled(
-            center_x - 40,
-            center_y - 40,
-            80,
-            80,
-            self.color,
-        )
+        self.set_class_texture("fighter.png")
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
         direction_x, direction_y = self._get_attack_direction(aim_x, aim_y)

@@ -188,6 +188,7 @@ class GameView(arcade.View):
             arcade.color.WHITE,
             16,
         )
+        self._draw_rest_hud()
 
         arcade.draw_text(
             f"Врагов: {self._get_alive_enemy_count()}",
@@ -248,6 +249,93 @@ class GameView(arcade.View):
                 arcade.color.YELLOW,
                 16,
             )
+
+    def _draw_rest_hud(self):
+        icon_size = 58
+        gap = 12
+        margin = 24
+        center_y = margin + (icon_size / 2)
+        long_rest_center_x = SCREEN_WIDTH - margin - (icon_size / 2)
+        short_rest_center_x = long_rest_center_x - icon_size - gap
+
+        self._draw_rest_icon(
+            short_rest_center_x,
+            center_y,
+            icon_size,
+            "Q",
+            self.player.short_rest_charges,
+            self.player.max_short_rest_charges,
+            (80, 170, 210),
+            "short",
+        )
+        self._draw_rest_icon(
+            long_rest_center_x,
+            center_y,
+            icon_size,
+            "E",
+            self.player.long_rest_charges,
+            self.player.max_long_rest_charges,
+            (120, 220, 140),
+            "long",
+        )
+
+    def _draw_rest_icon(self, center_x, center_y, size, key, charges, max_charges, accent_color, icon_kind):
+        can_use = charges > 0 and self.player.is_alive() and self.player.current_hp < self.player.max_hp
+        background = (36, 40, 48) if can_use else (28, 30, 34)
+        outline = accent_color if charges > 0 else (105, 105, 105)
+        symbol_color = accent_color if charges > 0 else (135, 135, 135)
+        left = center_x - (size / 2)
+        bottom = center_y - (size / 2)
+
+        arcade.draw_rect_filled(
+            arcade.XYWH(center_x, center_y, size, size),
+            background,
+        )
+        arcade.draw_rect_outline(
+            arcade.XYWH(center_x, center_y, size, size),
+            outline,
+            2,
+        )
+
+        if icon_kind == "short":
+            self._draw_short_rest_symbol(center_x, center_y + 2, symbol_color, background)
+        else:
+            self._draw_long_rest_symbol(center_x, center_y + 2, symbol_color)
+
+        arcade.draw_text(
+            key,
+            left + 7,
+            bottom + size - 18,
+            arcade.color.WHITE,
+            12,
+            bold=True,
+        )
+        arcade.draw_text(
+            f"{charges}/{max_charges}",
+            center_x,
+            bottom + 6,
+            arcade.color.WHITE if charges > 0 else (145, 145, 145),
+            12,
+            anchor_x="center",
+            bold=True,
+        )
+
+    def _draw_short_rest_symbol(self, center_x, center_y, color, background):
+        arcade.draw_circle_filled(center_x - 2, center_y + 1, 14, color)
+        arcade.draw_circle_filled(center_x + 5, center_y + 5, 14, background)
+        arcade.draw_line(center_x - 14, center_y - 12, center_x + 13, center_y - 12, color, 3)
+
+    def _draw_long_rest_symbol(self, center_x, center_y, color):
+        arcade.draw_rect_filled(
+            arcade.XYWH(center_x, center_y - 5, 30, 12),
+            color,
+        )
+        arcade.draw_rect_filled(
+            arcade.XYWH(center_x - 9, center_y + 5, 12, 9),
+            color,
+        )
+        arcade.draw_line(center_x - 17, center_y - 13, center_x - 17, center_y + 10, color, 3)
+        arcade.draw_line(center_x + 17, center_y - 13, center_x + 17, center_y - 1, color, 3)
 
     def on_update(self, delta_time):
         self.player.change_x = 0
@@ -318,7 +406,11 @@ class GameView(arcade.View):
                 self.window.show_view(MenuView())
             return
 
-        if key == arcade.key.W or key == arcade.key.UP:
+        if key == arcade.key.Q:
+            self.player.use_short_rest()
+        elif key == arcade.key.E:
+            self.player.use_long_rest()
+        elif key == arcade.key.W or key == arcade.key.UP:
             self.up = True
         elif key == arcade.key.S or key == arcade.key.DOWN:
             self.down = True
@@ -326,11 +418,6 @@ class GameView(arcade.View):
             self.left = True
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = True
-        elif key == arcade.key.SPACE:
-            if self.player.attack():
-                self._lock_attack_direction()
-                aim_x, aim_y = self._get_attack_aim()
-                self.player.execute_attack(self, aim_x, aim_y)
         elif key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
 
@@ -343,6 +430,13 @@ class GameView(arcade.View):
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         self.mouse_x = x
         self.mouse_y = y
+
+    def on_mouse_press(self, x, y, button, modifiers):
+        self.mouse_x = x
+        self.mouse_y = y
+
+        if button == arcade.MOUSE_BUTTON_LEFT:
+            self._try_player_attack()
 
     def _get_attack_aim(self):
         if self.attack_dir_x is not None and self.attack_dir_y is not None:
@@ -365,6 +459,15 @@ class GameView(arcade.View):
 
         self.attack_dir_x = dx / distance
         self.attack_dir_y = dy / distance
+
+    def _try_player_attack(self):
+        if self.game_over or self.game_completed:
+            return
+
+        if self.player.attack():
+            self._lock_attack_direction()
+            aim_x, aim_y = self._get_attack_aim()
+            self.player.execute_attack(self, aim_x, aim_y)
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:

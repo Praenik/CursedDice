@@ -32,9 +32,6 @@ class GameView(arcade.View):
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
 
-        self.player_list = arcade.SpriteList()
-        self.player_list.append(self.player)
-
         self.enemies_list = arcade.SpriteList()
         self.player_projectiles = arcade.SpriteList()
         self.enemy_projectiles = arcade.SpriteList()
@@ -121,7 +118,7 @@ class GameView(arcade.View):
         remaining_seconds = seconds - (minutes * 60)
         return f"{minutes:02d}:{remaining_seconds:04.1f}"
 
-    def on_draw(self):
+    def draw_game_frame(self, show_pause_hint=True):
         self.clear()
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -132,7 +129,7 @@ class GameView(arcade.View):
 
         self.player_projectiles.draw()
         self.enemy_projectiles.draw()
-        self.player_list.draw()
+        self.player.draw_current_frame()
         self.player.draw_combat_feedback()
 
         if self.game_over:
@@ -252,6 +249,18 @@ class GameView(arcade.View):
                 arcade.color.YELLOW,
                 16,
             )
+
+        if show_pause_hint and not self.game_over and not self.game_completed:
+            arcade.draw_text(
+                "ESC - пауза",
+                16,
+                16,
+                arcade.color.LIGHT_GRAY,
+                14,
+            )
+
+    def on_draw(self):
+        self.draw_game_frame()
 
     def _draw_rest_hud(self):
         icon_size = 58
@@ -403,6 +412,21 @@ class GameView(arcade.View):
         elif sprite.top > SCREEN_HEIGHT:
             sprite.top = SCREEN_HEIGHT
 
+    def _reset_input_state(self):
+        self.up = False
+        self.down = False
+        self.left = False
+        self.right = False
+        self.player.change_x = 0
+        self.player.change_y = 0
+
+    def open_pause_view(self):
+        self._reset_input_state()
+
+        from views.pause_view import PauseView
+
+        self.window.show_view(PauseView(self))
+
     def on_key_press(self, key, modifiers):
         if self.game_over or self.game_completed:
             if key == arcade.key.ESCAPE:
@@ -424,9 +448,7 @@ class GameView(arcade.View):
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = True
         elif key == arcade.key.ESCAPE:
-            from views.menu_view import MenuView
-
-            self.window.show_view(MenuView())
+            self.open_pause_view()
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse_x = x
@@ -456,6 +478,7 @@ class GameView(arcade.View):
         dx = self.mouse_x - self.player.center_x
         dy = self.mouse_y - self.player.center_y
         distance = (dx ** 2 + dy ** 2) ** 0.5
+        self.player.face_towards(self.mouse_x)
 
         if distance == 0:
             self.attack_dir_x = 1.0

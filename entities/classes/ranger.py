@@ -21,7 +21,48 @@ class Ranger(Player):
         self.attack_cooldown = 0.4
         self.speed = 2.0
 
-        self.set_class_texture("ranger.png")
+        self.set_class_texture("ranger/ranger.png")
+        self.set_attack_animation(
+            [
+                {
+                    "texture_name": "ranger/ranger_attack_1.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {
+                    "texture_name": "ranger/ranger_attack_2.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {"texture_name": "ranger/ranger.png", "body_height_override": self.base_body_height},
+                {
+                    "texture_name": "ranger/ranger_attack_3.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {
+                    "texture_name": "ranger/ranger_attack.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {
+                    "texture_name": "ranger/ranger_attack.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {
+                    "texture_name": "ranger/ranger_attack_1.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+                {
+                    "texture_name": "ranger/ranger_attack_1.png",
+                    "body_height_override": self.base_body_height,
+                    "match_base_texture_height": True,
+                },
+            ],
+            duration=0.36,
+        )
 
     def get_attack_damage(self):
         total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("dexterity"))

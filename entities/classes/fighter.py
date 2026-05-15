@@ -24,7 +24,20 @@ class Fighter(Player):
         self.attack_damage = 8
         self.speed = 1
 
-        self.set_class_texture("fighter.png")
+        self.set_class_texture("fighter/fighter.png")
+        self.set_attack_animation(
+            [
+                {"texture_name": "fighter/fighter_attack_1.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack_2.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack_3.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack_3.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack_2.png", "body_height_override": self.base_body_height},
+                {"texture_name": "fighter/fighter_attack_1.png", "body_height_override": self.base_body_height},
+            ],
+            duration=0.42,
+        )
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
         direction_x, direction_y = self._get_attack_direction(aim_x, aim_y)

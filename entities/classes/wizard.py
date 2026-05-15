@@ -20,7 +20,20 @@ class Wizard(Player):
         self.attack_cooldown = 0.5
         self.speed = 1.5
 
-        self.set_class_texture("wizard.png")
+        self.set_class_texture("wizard/wizard.png")
+        self.set_attack_animation(
+            [
+                {"texture_name": "wizard/wizard_attack_1.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack_2.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack_3.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack_3.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack_2.png", "body_height_override": self.base_body_height},
+                {"texture_name": "wizard/wizard_attack_1.png", "body_height_override": self.base_body_height},
+            ],
+            duration=0.44,
+        )
 
     def get_attack_damage(self):
         total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("intelligence"))

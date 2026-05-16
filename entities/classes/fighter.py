@@ -7,24 +7,32 @@ from entities.player import Player
 
 
 class Fighter(Player):
-    def __init__(self, name="Воин"):
-        stats = {
-            "strength": 16,
-            "dexterity": 12,
-            "constitution": 16,
-            "intelligence": 8,
-            "wisdom": 10,
-            "charisma": 10,
-        }
-        super().__init__(name, stats)
-        self.class_name = "Воин"
-        self.class_description = "Мастер клинка и щита. Вынослив и смертоносен в ближнем бою."
+    CLASS_NAME = "\u0412\u043e\u0438\u043d"
+    CLASS_DESCRIPTION = (
+        "\u041c\u0430\u0441\u0442\u0435\u0440 \u043a\u043b\u0438\u043d\u043a\u0430 \u0438 \u0449\u0438\u0442\u0430. "
+        "\u0412\u044b\u043d\u043e\u0441\u043b\u0438\u0432 \u0438 \u0441\u043c\u0435\u0440\u0442\u043e\u043d\u043e\u0441\u0435\u043d "
+        "\u0432 \u0431\u043b\u0438\u0436\u043d\u0435\u043c \u0431\u043e\u044e."
+    )
+    DEFAULT_STATS = {
+        "strength": 16,
+        "dexterity": 12,
+        "constitution": 16,
+        "intelligence": 8,
+        "wisdom": 10,
+        "charisma": 10,
+    }
+    PREVIEW_TEXTURE_NAME = "fighter/fighter.png"
+
+    def __init__(self, name=CLASS_NAME):
+        super().__init__(name, self.DEFAULT_STATS)
+        self.class_name = self.CLASS_NAME
+        self.class_description = self.CLASS_DESCRIPTION
         self.attack_range = 100
         self.attack_angle = 90
         self.attack_damage = 8
         self.speed = 1
 
-        self.set_class_texture("fighter/fighter.png")
+        self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
         self.set_attack_animation(
             [
                 {"texture_name": "fighter/fighter_attack_1.png", "body_height_override": self.base_body_height},

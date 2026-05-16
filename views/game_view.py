@@ -4,8 +4,11 @@ import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.leaderboard import add_leaderboard_entry
+from core.resources import resource_path
 from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
 from entities.player import Player
+
+GAME_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "battlefield_ground.png")
 
 
 class GameView(arcade.View):
@@ -46,6 +49,7 @@ class GameView(arcade.View):
         self.mouse_y = self.player.center_y
         self.attack_dir_x = None
         self.attack_dir_y = None
+        self.background_texture = arcade.load_texture(GAME_BACKGROUND_TEXTURE)
 
     def _spawn_next_wave(self):
         next_wave_index = self.current_wave_index + 1
@@ -121,6 +125,7 @@ class GameView(arcade.View):
     def draw_game_frame(self, show_pause_hint=True):
         self.clear()
         arcade.set_background_color(arcade.color.BLACK)
+        self._draw_background()
 
         self.enemies_list.draw()
         for enemy in self.enemies_list:
@@ -261,6 +266,31 @@ class GameView(arcade.View):
 
     def on_draw(self):
         self.draw_game_frame()
+
+    def _draw_background(self):
+        if self.background_texture is None:
+            return
+
+        texture_width = self.background_texture.width
+        texture_height = self.background_texture.height
+        if texture_width <= 0 or texture_height <= 0:
+            return
+
+        texture_aspect = texture_width / texture_height
+        screen_aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+
+        if texture_aspect >= screen_aspect:
+            draw_height = SCREEN_HEIGHT
+            draw_width = draw_height * texture_aspect
+        else:
+            draw_width = SCREEN_WIDTH
+            draw_height = draw_width / texture_aspect
+
+        arcade.draw_texture_rect(
+            self.background_texture,
+            arcade.XYWH(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, draw_width, draw_height),
+            pixelated=True,
+        )
 
     def _draw_rest_hud(self):
         icon_size = 58

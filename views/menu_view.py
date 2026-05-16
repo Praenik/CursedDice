@@ -1,6 +1,10 @@
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
+from core.resources import resource_path
+
+MENU_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "menu_background.png")
+MENU_LOGO_TEXTURE = resource_path("assets", "textures", "ui", "menu_logo.png")
 
 
 class MenuView(arcade.View):
@@ -15,6 +19,8 @@ class MenuView(arcade.View):
         ]
         self.rules_modal_open = False
         self.close_button_hovered = False
+        self.background_texture = arcade.load_texture(MENU_BACKGROUND_TEXTURE)
+        self.logo_texture = arcade.load_texture(MENU_LOGO_TEXTURE)
         self.rules_sections = [
             [
                 (
@@ -58,18 +64,10 @@ class MenuView(arcade.View):
 
     def on_draw(self):
         self.clear()
-        arcade.set_background_color(arcade.color.DARK_SLATE_GRAY)
-
-        arcade.draw_text(
-            "CURSED DICE",
-            SCREEN_WIDTH // 2,
-            SCREEN_HEIGHT - 150,
-            arcade.color.GOLD,
-            64,
-            anchor_x="center",
-            font_name="Arial",
-            bold=True,
-        )
+        arcade.set_background_color(arcade.color.BLACK)
+        self._draw_background()
+        self._draw_menu_overlay()
+        self._draw_logo()
 
         for index, item in enumerate(self.menu_items):
             y = SCREEN_HEIGHT // 2 - index * 60
@@ -98,6 +96,74 @@ class MenuView(arcade.View):
 
         if self.rules_modal_open:
             self._draw_rules_modal()
+
+    def _draw_background(self):
+        if self.background_texture is None:
+            return
+
+        texture_width = self.background_texture.width
+        texture_height = self.background_texture.height
+        if texture_width <= 0 or texture_height <= 0:
+            return
+
+        texture_aspect = texture_width / texture_height
+        screen_aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+
+        if texture_aspect >= screen_aspect:
+            draw_height = SCREEN_HEIGHT
+            draw_width = draw_height * texture_aspect
+        else:
+            draw_width = SCREEN_WIDTH
+            draw_height = draw_width / texture_aspect
+
+        arcade.draw_texture_rect(
+            self.background_texture,
+            arcade.XYWH(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, draw_width, draw_height),
+            pixelated=True,
+        )
+
+    def _draw_menu_overlay(self):
+        arcade.draw_lbwh_rectangle_filled(
+            0,
+            0,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            (8, 6, 8, 118),
+        )
+        arcade.draw_lbwh_rectangle_filled(
+            int((SCREEN_WIDTH - 520) / 2),
+            148,
+            520,
+            286,
+            (14, 10, 12, 158),
+        )
+        arcade.draw_lbwh_rectangle_outline(
+            int((SCREEN_WIDTH - 520) / 2),
+            148,
+            520,
+            286,
+            (173, 132, 69, 175),
+            2,
+        )
+
+    def _draw_logo(self):
+        if self.logo_texture is None:
+            return
+
+        max_width = 860
+        max_height = 240
+        texture_width = self.logo_texture.width
+        texture_height = self.logo_texture.height
+        if texture_width <= 0 or texture_height <= 0:
+            return
+
+        scale = min(max_width / texture_width, max_height / texture_height)
+        draw_width = texture_width * scale
+        draw_height = texture_height * scale
+        arcade.draw_texture_rect(
+            self.logo_texture,
+            arcade.XYWH(SCREEN_WIDTH / 2, SCREEN_HEIGHT - 158, draw_width, draw_height),
+        )
 
     def _draw_rules_modal(self):
         modal_left, modal_bottom, modal_width, modal_height = self._get_modal_bounds()

@@ -11,6 +11,7 @@ from entities.entity import Entity
 PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
 PLAYER_TEXTURE_MAX_SIZE = 84
 PLAYER_PREVIEW_MAX_SIZE = 160
+PLAYER_TEXTURE_SOURCE_MAX_SIZE = 384
 
 
 @lru_cache(maxsize=None)
@@ -42,6 +43,7 @@ def load_player_texture_frame_data(texture_name):
     alpha_bbox = rgba_image.getchannel("A").getbbox()
     if alpha_bbox is not None:
         rgba_image = rgba_image.crop(alpha_bbox)
+    rgba_image = _downscale_player_texture_source(rgba_image)
 
     width, height = rgba_image.size
     body_center_x, body_height = _measure_body_metrics(rgba_image)
@@ -66,86 +68,44 @@ def load_player_texture_pair(texture_name):
     return right_texture, left_texture
 
 
+def _downscale_player_texture_source(rgba_image):
+    width, height = rgba_image.size
+    largest_side = max(width, height)
+    if largest_side <= PLAYER_TEXTURE_SOURCE_MAX_SIZE:
+        return rgba_image
+
+    scale = PLAYER_TEXTURE_SOURCE_MAX_SIZE / largest_side
+    resized_width = max(1, round(width * scale))
+    resized_height = max(1, round(height * scale))
+    return rgba_image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
+
+
 def _measure_body_metrics(rgba_image):
     width, height = rgba_image.size
+    if width <= 0 or height <= 0:
+        return 0.0, 0.0
+
     alpha = rgba_image.getchannel("A")
     body_top = int(height * 0.2)
-    body_bottom = int(height * 0.82)
-    column_counts = []
-    max_count = 0
-
-    for x in range(width):
-        count = 0
-        for y in range(body_top, body_bottom):
-            if alpha.getpixel((x, y)) > 0:
-                count += 1
-        column_counts.append(count)
-        if count > max_count:
-            max_count = count
-
-    if max_count <= 0:
+    body_bottom = max(body_top + 1, int(height * 0.82))
+    body_slice = alpha.crop((0, body_top, width, body_bottom))
+    body_bbox = body_slice.getbbox()
+    if body_bbox is None:
         return width / 2, height
 
-    threshold = max(8, int(max_count * 0.35))
-    body_left, body_right = _select_body_column_span(column_counts, threshold, width)
-    if body_left is None or body_right is None:
-        return width / 2, height
-
-    body_center_x = (body_left + body_right) / 2
-
-    scan_half_width = max(8, int((body_right - body_left) * 0.18))
+    body_left, _, body_right, _ = body_bbox
+    body_center_x = (body_left + body_right - 1) / 2
+    body_width = max(1, body_right - body_left)
+    scan_half_width = max(8, int(body_width * 0.18))
     scan_left = max(0, int(body_center_x - scan_half_width))
-    scan_right = min(width - 1, int(body_center_x + scan_half_width))
-    row_counts = []
-    max_row_count = 0
-
-    for y in range(height):
-        count = 0
-        for x in range(scan_left, scan_right + 1):
-            if alpha.getpixel((x, y)) > 0:
-                count += 1
-        row_counts.append(count)
-        if count > max_row_count:
-            max_row_count = count
-
-    if max_row_count <= 0:
+    scan_right = min(width, int(body_center_x + scan_half_width) + 1)
+    center_slice = alpha.crop((scan_left, 0, scan_right, height))
+    center_bbox = center_slice.getbbox()
+    if center_bbox is None:
         return body_center_x, height
 
-    row_threshold = max(4, int(max_row_count * 0.22))
-    dense_rows = [index for index, count in enumerate(row_counts) if count >= row_threshold]
-    if not dense_rows:
-        return body_center_x, height
-
-    body_height = dense_rows[-1] - dense_rows[0] + 1
+    body_height = max(1, center_bbox[3] - center_bbox[1])
     return body_center_x, body_height
-
-
-def _select_body_column_span(column_counts, threshold, width):
-    best_span = None
-    run_start = None
-    image_center_x = width / 2
-
-    for index, count in enumerate(column_counts):
-        is_dense = count >= threshold
-        if is_dense and run_start is None:
-            run_start = index
-
-        is_last_column = index == len(column_counts) - 1
-        if (not is_dense or is_last_column) and run_start is not None:
-            run_end = index if is_dense and is_last_column else index - 1
-            span_center_x = (run_start + run_end) / 2
-            span_density = sum(column_counts[run_start : run_end + 1])
-            center_distance = abs(span_center_x - image_center_x)
-            score = span_density - (center_distance * 0.5)
-            candidate = (score, run_start, run_end)
-            if best_span is None or candidate[0] > best_span[0]:
-                best_span = candidate
-            run_start = None
-
-    if best_span is None:
-        return None, None
-
-    return best_span[1], best_span[2]
 
 
 class Player(Entity, arcade.Sprite):

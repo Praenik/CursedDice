@@ -7,12 +7,8 @@ from entities.player import Player
 
 
 class Fighter(Player):
-    CLASS_NAME = "\u0412\u043e\u0438\u043d"
-    CLASS_DESCRIPTION = (
-        "\u041c\u0430\u0441\u0442\u0435\u0440 \u043a\u043b\u0438\u043d\u043a\u0430 \u0438 \u0449\u0438\u0442\u0430. "
-        "\u0412\u044b\u043d\u043e\u0441\u043b\u0438\u0432 \u0438 \u0441\u043c\u0435\u0440\u0442\u043e\u043d\u043e\u0441\u0435\u043d "
-        "\u0432 \u0431\u043b\u0438\u0436\u043d\u0435\u043c \u0431\u043e\u044e."
-    )
+    CLASS_NAME = "Воин"
+    CLASS_DESCRIPTION = "Мастер клинка и щита. Медленнее других, зато особенно хорош в ближнем бою."
     DEFAULT_STATS = {
         "strength": 16,
         "dexterity": 12,
@@ -59,14 +55,12 @@ class Fighter(Player):
             dx = enemy.center_x - self.center_x
             dy = enemy.center_y - self.center_y
             distance = math.hypot(dx, dy)
-
             if distance == 0 or distance > self.attack_range:
                 continue
 
             enemy_dir_x = dx / distance
             enemy_dir_y = dy / distance
-            dot = (direction_x * enemy_dir_x) + (direction_y * enemy_dir_y)
-            if dot >= min_dot:
+            if (direction_x * enemy_dir_x) + (direction_y * enemy_dir_y) >= min_dot:
                 targets.append(enemy)
 
         return targets
@@ -89,28 +83,19 @@ class Fighter(Player):
             2,
         )
 
-        left_radians = math.radians(start_angle)
-        right_radians = math.radians(end_angle)
-        arcade.draw_line(
-            self.center_x,
-            self.center_y,
-            self.center_x + (math.cos(left_radians) * self.attack_range),
-            self.center_y + (math.sin(left_radians) * self.attack_range),
-            arcade.color.WHITE,
-            2,
-        )
-        arcade.draw_line(
-            self.center_x,
-            self.center_y,
-            self.center_x + (math.cos(right_radians) * self.attack_range),
-            self.center_y + (math.sin(right_radians) * self.attack_range),
-            arcade.color.WHITE,
-            2,
-        )
+        for angle in (start_angle, end_angle):
+            radians = math.radians(angle)
+            arcade.draw_line(
+                self.center_x,
+                self.center_y,
+                self.center_x + (math.cos(radians) * self.attack_range),
+                self.center_y + (math.sin(radians) * self.attack_range),
+                arcade.color.WHITE,
+                2,
+            )
 
     def get_attack_damage(self):
-        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
-        return max(1, total_damage)
+        return max(1, dices.roll_dice(self.attack_damage, self.get_modifier("strength")))
 
     def get_attack_modifier(self):
         return self.get_modifier("strength")

@@ -1,3 +1,5 @@
+from entities.classes import Fighter, Ranger, Wizard
 from entities.entity import Entity
 from entities.player import Player
-from entities.classes import Fighter, Ranger, Wizard
+
+__all__ = ["Entity", "Player", "Fighter", "Ranger", "Wizard"]

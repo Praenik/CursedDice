@@ -5,18 +5,18 @@ param(
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$sitePackages = Join-Path $projectRoot ".venv\Lib\site-packages"
+$venvSitePackages = Join-Path $projectRoot ".venv\Lib\site-packages"
 $specPath = Join-Path $projectRoot "CursedDice.spec"
 
 if (-not (Test-Path $PythonExe)) {
     throw "Python executable not found: $PythonExe"
 }
 
-if (-not (Test-Path $sitePackages)) {
-    throw "Site-packages directory not found: $sitePackages"
+if (-not (Test-Path $venvSitePackages)) {
+    throw "Site-packages directory not found: $venvSitePackages"
 }
 
-$env:PYTHONPATH = $sitePackages
+$env:PYTHONPATH = $venvSitePackages
 
 Push-Location $projectRoot
 try {

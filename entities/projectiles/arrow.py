@@ -30,7 +30,6 @@ class Arrow(arcade.Sprite):
         self.speed = 8.0
         self.max_lifetime = 2.0
         self.life_timer = 0.0
-
         self.texture = self._create_texture()
         self.width = 22
         self.height = 6
@@ -49,18 +48,10 @@ class Arrow(arcade.Sprite):
         self.center_x += self.velocity_x * delta_time * 60
         self.center_y += self.velocity_y * delta_time * 60
 
-        if (
-            self.right < 0
-            or self.left > SCREEN_WIDTH
-            or self.top < 0
-            or self.bottom > SCREEN_HEIGHT
-        ):
+        if self.right < 0 or self.left > SCREEN_WIDTH or self.top < 0 or self.bottom > SCREEN_HEIGHT:
             self.kill()
             return
 
-        self._check_hit(enemies)
-
-    def _check_hit(self, enemies):
         for enemy in enemies:
             if not enemy.is_alive():
                 continue
@@ -77,9 +68,7 @@ class Arrow(arcade.Sprite):
                 return
 
     def _distance_to(self, enemy):
-        dx = enemy.center_x - self.center_x
-        dy = enemy.center_y - self.center_y
-        return math.hypot(dx, dy)
+        return math.hypot(enemy.center_x - self.center_x, enemy.center_y - self.center_y)
 
     def _normalize(self, dx, dy):
         distance = math.hypot(dx, dy)

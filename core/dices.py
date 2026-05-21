@@ -2,9 +2,7 @@ from random import randint
 
 
 def roll_dice(dice: int, *modifier) -> int:
-    roll = randint(1, dice)
-    total = roll + sum(modifier)
-    return max(1, total)
+    return max(1, randint(1, dice) + sum(modifier))
 
 
 def roll_d20(*modifier) -> int:

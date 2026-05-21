@@ -4,9 +4,8 @@ from pathlib import Path
 
 
 project_root = Path.cwd()
-datas = [
-    (str(project_root / "assets"), "assets"),
-]
+asset_dir = project_root / "assets"
+datas = [(str(asset_dir), "assets")]
 
 
 a = Analysis(

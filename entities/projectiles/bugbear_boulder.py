@@ -35,12 +35,7 @@ class BugbearBoulder(arcade.Sprite):
         self.center_y += self.velocity_y * delta_time * 60
         self.angle += 420 * delta_time
 
-        if (
-            self.right < 0
-            or self.left > SCREEN_WIDTH
-            or self.top < 0
-            or self.bottom > SCREEN_HEIGHT
-        ):
+        if self.right < 0 or self.left > SCREEN_WIDTH or self.top < 0 or self.bottom > SCREEN_HEIGHT:
             self.kill()
             return
 
@@ -59,9 +54,7 @@ class BugbearBoulder(arcade.Sprite):
             self.kill()
 
     def _distance_to(self, player):
-        dx = player.center_x - self.center_x
-        dy = player.center_y - self.center_y
-        return math.hypot(dx, dy)
+        return math.hypot(player.center_x - self.center_x, player.center_y - self.center_y)
 
     def _normalize(self, dx, dy):
         distance = math.hypot(dx, dy)
@@ -72,9 +65,7 @@ class BugbearBoulder(arcade.Sprite):
     def _create_texture(self):
         img = Image.new("RGBA", (22, 22), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
-
         draw.ellipse((1, 1, 20, 20), fill=(105, 90, 78, 255), outline=(225, 215, 205, 255), width=2)
         draw.line([(5, 7), (10, 4), (16, 8)], fill=(65, 55, 50, 255), width=2)
         draw.line([(6, 15), (13, 17), (18, 13)], fill=(65, 55, 50, 255), width=2)
-
         return arcade.Texture(img)

@@ -12,6 +12,9 @@ PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
 PLAYER_TEXTURE_MAX_SIZE = 84
 PLAYER_PREVIEW_MAX_SIZE = 160
 PLAYER_TEXTURE_SOURCE_MAX_SIZE = 384
+DEFAULT_PLAYER_NAME = "Игрок"
+DEFAULT_CLASS_NAME = "Авантюрист"
+HEAL_FEEDBACK_COLOR = (120, 255, 170)
 
 
 @lru_cache(maxsize=None)
@@ -28,10 +31,8 @@ def resolve_player_texture_path(texture_name):
     if not matches:
         raise FileNotFoundError(f"Player texture '{texture_name}' was not found in {PLAYER_TEXTURES_DIR}")
 
-    raise FileNotFoundError(
-        f"Player texture '{texture_name}' is ambiguous; matches: "
-        + ", ".join(str(match.relative_to(PLAYER_TEXTURES_DIR)) for match in matches)
-    )
+    variants = ", ".join(str(match.relative_to(PLAYER_TEXTURES_DIR)) for match in matches)
+    raise FileNotFoundError(f"Player texture '{texture_name}' is ambiguous; matches: {variants}")
 
 
 @lru_cache(maxsize=None)
@@ -50,11 +51,9 @@ def load_player_texture_frame_data(texture_name):
     body_delta_x = body_center_x - (width / 2)
     bottom_delta_y = (height - 1) - (height / 2)
 
-    right_image = rgba_image.copy()
-    left_image = rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     return (
-        arcade.Texture(right_image),
-        arcade.Texture(left_image),
+        arcade.Texture(rgba_image.copy()),
+        arcade.Texture(rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)),
         width,
         height,
         body_delta_x,
@@ -109,16 +108,17 @@ def _measure_body_metrics(rgba_image):
 
 
 class Player(Entity, arcade.Sprite):
-    def __init__(self, name="Игрок", stats=None):
+    def __init__(self, name=DEFAULT_PLAYER_NAME, stats=None):
         Entity.__init__(self, name, stats)
         arcade.Sprite.__init__(self)
+
         self.color = arcade.color.WHITE
         self.texture_right = None
         self.texture_left = None
         self.attack_animation_frames = []
         self.facing_direction = 1
 
-        self.class_name = "Авантюрист"
+        self.class_name = DEFAULT_CLASS_NAME
         self.class_description = ""
         self.speed = 3
 
@@ -126,17 +126,20 @@ class Player(Entity, arcade.Sprite):
         self.attack_damage = 0
         self.attack_cooldown = 0.5
         self.attack_timer = 0.0
+        self.attack_animation_duration = 0.18
         self.is_attacking = False
+
         self.stun_timer = 0.0
         self.charm_timer = 0.0
         self.charm_target = None
         self.charm_speed_multiplier = 1.0
         self.next_attack_disadvantage = False
-        self.attack_animation_duration = 0.18
+
         self.max_short_rest_charges = 2
         self.short_rest_charges = self.max_short_rest_charges
         self.max_long_rest_charges = 1
         self.long_rest_charges = self.max_long_rest_charges
+
         self.texture_name = None
         self.base_texture_frame_height = 0.0
         self.base_body_delta_x = 0.0
@@ -151,40 +154,32 @@ class Player(Entity, arcade.Sprite):
 
         if not self.is_alive():
             self.color = arcade.color.GRAY
-            self.change_x = 0
-            self.change_y = 0
+            self._stop_motion()
             return
 
         if self.is_stunned():
-            self.change_x = 0
-            self.change_y = 0
-            self.is_attacking = False
+            self._stop_action()
         elif self.is_charmed():
             self._apply_charm_movement()
 
         self._update_facing_direction()
         super().update()
-
-        if self.attack_timer > 0:
-            self.attack_timer -= delta_time
-            if self.attack_timer <= 0:
-                self.is_attacking = False
+        self._tick_attack_timer(delta_time)
 
     def attack(self):
-        if self.can_attack():
-            self.is_attacking = True
-            self.attack_timer = self.attack_cooldown
-            return True
-        return False
+        if not self.can_attack():
+            return False
+
+        self.is_attacking = True
+        self.attack_timer = self.attack_cooldown
+        return True
 
     def can_attack(self):
         return self.attack_timer <= 0 and not self.is_stunned() and not self.is_charmed()
 
     def stun(self, duration):
         self.stun_timer = max(self.stun_timer, duration)
-        self.is_attacking = False
-        self.change_x = 0
-        self.change_y = 0
+        self._stop_action()
 
     def is_stunned(self):
         return self.stun_timer > 0
@@ -197,60 +192,56 @@ class Player(Entity, arcade.Sprite):
         self.charm_target = target
         self.charm_timer = max(self.charm_timer, duration)
         self.charm_speed_multiplier = speed_multiplier
-        self.is_attacking = False
-        self.change_x = 0
-        self.change_y = 0
+        self._stop_action()
 
     def is_charmed(self):
         return self.charm_timer > 0 and self.charm_target is not None
 
     def _update_charm(self, delta_time):
         if self.charm_target is not None and not self.charm_target.is_alive():
-            self.charm_timer = 0.0
-            self.charm_target = None
-            self.charm_speed_multiplier = 1.0
+            self._clear_charm()
             return
 
         if self.charm_timer > 0:
             self.charm_timer = max(0.0, self.charm_timer - delta_time)
             if self.charm_timer <= 0:
-                self.charm_target = None
-                self.charm_speed_multiplier = 1.0
+                self._clear_charm()
         elif self.charm_target is not None:
-            self.charm_target = None
-            self.charm_speed_multiplier = 1.0
+            self._clear_charm()
+
+    def _clear_charm(self):
+        self.charm_timer = 0.0
+        self.charm_target = None
+        self.charm_speed_multiplier = 1.0
 
     def add_attack_disadvantage(self):
         self.next_attack_disadvantage = True
 
     def consume_attack_disadvantage(self):
-        has_disadvantage = self.next_attack_disadvantage
+        had_disadvantage = self.next_attack_disadvantage
         self.next_attack_disadvantage = False
-        return has_disadvantage
+        return had_disadvantage
 
     def use_short_rest(self):
-        if not self._can_rest(self.short_rest_charges):
+        return self._use_rest(self.short_rest_charges, math.ceil(self.max_hp / 2), "short")
+
+    def use_long_rest(self):
+        return self._use_rest(self.long_rest_charges, self.max_hp, "long")
+
+    def _use_rest(self, charges, heal_amount, rest_kind):
+        if not self._can_rest(charges):
             return False
 
-        heal_amount = math.ceil(self.max_hp / 2)
         healed = self._heal_from_rest(heal_amount)
         if healed <= 0:
             return False
 
-        self.short_rest_charges -= 1
-        self.show_combat_feedback(f"+{healed}", (120, 255, 170))
-        return True
+        if rest_kind == "short":
+            self.short_rest_charges -= 1
+        else:
+            self.long_rest_charges -= 1
 
-    def use_long_rest(self):
-        if not self._can_rest(self.long_rest_charges):
-            return False
-
-        healed = self._heal_from_rest(self.max_hp)
-        if healed <= 0:
-            return False
-
-        self.long_rest_charges -= 1
-        self.show_combat_feedback(f"+{healed}", (120, 255, 170))
+        self.show_combat_feedback(f"+{healed}", HEAL_FEEDBACK_COLOR)
         return True
 
     def _can_rest(self, charges):
@@ -265,10 +256,8 @@ class Player(Entity, arcade.Sprite):
         dx = self.charm_target.center_x - self.center_x
         dy = self.charm_target.center_y - self.center_y
         distance = math.hypot(dx, dy)
-
         if distance == 0:
-            self.change_x = 0
-            self.change_y = 0
+            self._stop_motion()
             return
 
         charm_speed = self.speed * self.charm_speed_multiplier
@@ -286,16 +275,28 @@ class Player(Entity, arcade.Sprite):
         damage = self.get_attack_damage()
         attack_bonus = self.get_attack_modifier()
         disadvantage = self.consume_attack_disadvantage()
-        targets = self.get_attack_targets(game_view.enemies_list, aim_x, aim_y)
-        for enemy in targets:
+
+        for enemy in self.get_attack_targets(game_view.enemies_list, aim_x, aim_y):
             enemy.resolve_attack(attack_bonus, damage, attacker=self, disadvantage=disadvantage)
+
+    def _spawn_projectile_attack(self, game_view, projectile_cls, aim_x, aim_y):
+        game_view.player_projectiles.append(
+            projectile_cls(
+                self.center_x,
+                self.center_y,
+                aim_x,
+                aim_y,
+                self.get_attack_damage(),
+                self.get_attack_modifier(),
+                attacker=self,
+                attack_disadvantage=self.consume_attack_disadvantage(),
+            )
+        )
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
         targets = []
         for enemy in enemies:
-            if not enemy.is_alive():
-                continue
-            if arcade.get_distance_between_sprites(self, enemy) <= self.attack_range:
+            if enemy.is_alive() and arcade.get_distance_between_sprites(self, enemy) <= self.attack_range:
                 targets.append(enemy)
         return targets
 
@@ -335,6 +336,7 @@ class Player(Entity, arcade.Sprite):
             self.base_bottom_delta_y,
             self.base_body_height,
         ) = load_player_texture_frame_data(texture_name)
+
         self.facing_direction = 1
         self.texture = self.texture_right
         self.sync_hit_box_to_texture()
@@ -343,6 +345,7 @@ class Player(Entity, arcade.Sprite):
             texture_height,
             PLAYER_TEXTURE_MAX_SIZE,
         )
+
         self.base_texture_frame_height = texture_height
         texture_scale = self.height / texture_height if texture_height > 0 else 1.0
         self.base_body_draw_height = self.base_body_height * texture_scale
@@ -350,45 +353,44 @@ class Player(Entity, arcade.Sprite):
     def set_attack_texture(self, texture_name):
         self.set_attack_animation([texture_name])
 
-    def set_attack_animation(self, texture_names, duration=None):
-        self.attack_animation_frames = []
-        for frame_config in texture_names:
-            body_height_override = None
-            scale_adjust = 1.0
-            match_base_texture_height = False
-            if isinstance(frame_config, str):
-                texture_name = frame_config
-            else:
-                texture_name = frame_config["texture_name"]
-                body_height_override = frame_config.get("body_height_override")
-                match_base_texture_height = frame_config.get("match_base_texture_height", False)
-
-            (
-                right_texture,
-                left_texture,
-                _width,
-                _height,
-                body_delta_x,
-                bottom_delta_y,
-                body_height,
-            ) = load_player_texture_frame_data(texture_name)
-            if match_base_texture_height and _height > 0 and self.base_texture_frame_height > 0:
-                scale_adjust *= self.base_texture_frame_height / _height
-            offset_x = self.base_body_delta_x - body_delta_x
-            offset_y = self.base_bottom_delta_y - bottom_delta_y
-            self.attack_animation_frames.append(
-                {
-                    "right_texture": right_texture,
-                    "left_texture": left_texture,
-                    "offset_x": offset_x,
-                    "offset_y": offset_y,
-                    "body_height": body_height if body_height_override is None else body_height_override,
-                    "scale_adjust": scale_adjust,
-                }
-            )
-
+    def set_attack_animation(self, frames, duration=None):
+        self.attack_animation_frames = [self._build_attack_frame(frame) for frame in frames]
         if duration is not None:
             self.attack_animation_duration = duration
+
+    def _build_attack_frame(self, frame_config):
+        body_height_override = None
+        scale_adjust = 1.0
+        match_base_texture_height = False
+
+        if isinstance(frame_config, str):
+            texture_name = frame_config
+        else:
+            texture_name = frame_config["texture_name"]
+            body_height_override = frame_config.get("body_height_override")
+            match_base_texture_height = frame_config.get("match_base_texture_height", False)
+
+        (
+            right_texture,
+            left_texture,
+            _width,
+            frame_height,
+            body_delta_x,
+            bottom_delta_y,
+            body_height,
+        ) = load_player_texture_frame_data(texture_name)
+
+        if match_base_texture_height and frame_height > 0 and self.base_texture_frame_height > 0:
+            scale_adjust = self.base_texture_frame_height / frame_height
+
+        return {
+            "right_texture": right_texture,
+            "left_texture": left_texture,
+            "offset_x": self.base_body_delta_x - body_delta_x,
+            "offset_y": self.base_bottom_delta_y - bottom_delta_y,
+            "body_height": self.base_body_height if body_height_override is not None else body_height,
+            "scale_adjust": scale_adjust,
+        }
 
     def face_towards(self, target_x):
         if target_x < self.center_x:
@@ -398,19 +400,18 @@ class Player(Entity, arcade.Sprite):
 
     def draw_current_frame(self):
         texture, offset_x, offset_y, body_height, scale_adjust = self._get_current_draw_frame()
-        if texture is None:
-            return
-
-        if texture.height <= 0:
+        if texture is None or texture.height <= 0:
             return
 
         if body_height > 0 and self.base_body_draw_height > 0:
             draw_scale = self.base_body_draw_height / body_height
         else:
             draw_scale = self.height / texture.height
+
         draw_scale *= scale_adjust
         draw_width = texture.width * draw_scale
         draw_height = texture.height * draw_scale
+
         arcade.draw_texture_rect(
             texture,
             arcade.XYWH(
@@ -470,8 +471,7 @@ class Player(Entity, arcade.Sprite):
             return None
 
         progress = min(1.0, max(0.0, elapsed / active_duration))
-        frame_index = min(int(progress * len(self.attack_animation_frames)), len(self.attack_animation_frames) - 1)
-        return frame_index
+        return min(int(progress * len(self.attack_animation_frames)), len(self.attack_animation_frames) - 1)
 
     def _get_scaled_dimensions(self, width, height, max_size):
         largest_side = max(width, height)
@@ -480,3 +480,19 @@ class Player(Entity, arcade.Sprite):
 
         scale = max_size / largest_side
         return width * scale, height * scale
+
+    def _tick_attack_timer(self, delta_time):
+        if self.attack_timer <= 0:
+            return
+
+        self.attack_timer -= delta_time
+        if self.attack_timer <= 0:
+            self.is_attacking = False
+
+    def _stop_motion(self):
+        self.change_x = 0
+        self.change_y = 0
+
+    def _stop_action(self):
+        self.is_attacking = False
+        self._stop_motion()

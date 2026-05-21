@@ -6,9 +6,11 @@ import arcade
 from core import dices
 from entities.entity import Entity
 
+DEFAULT_ENEMY_NAME = "Враг"
+
 
 class Enemy(Entity, arcade.Sprite):
-    def __init__(self, name="Враг", stats=None):
+    def __init__(self, name=DEFAULT_ENEMY_NAME, stats=None):
         Entity.__init__(self, name, stats)
         arcade.Sprite.__init__(self)
 
@@ -30,8 +32,8 @@ class Enemy(Entity, arcade.Sprite):
         self.state = "wander"
         self.is_aggroed = False
 
-        self.wander_timer = 0
-        self.wander_direction = (0, 0)
+        self.wander_timer = 0.0
+        self.wander_direction = (0.0, 0.0)
 
     def setup(self, x, y):
         self.spawn_x = x
@@ -49,66 +51,68 @@ class Enemy(Entity, arcade.Sprite):
             return
 
         if not self.is_alive():
-            self.change_x = 0
-            self.change_y = 0
-
-            if not self.is_dying:
-                self.is_dying = True
-                self.death_timer = self.death_duration
-                self.color = arcade.color.GRAY
-
-            if self.is_dying:
-                self.death_timer -= delta_time
-                if self.death_timer <= 0:
-                    self.kill()
-
+            self._update_death(delta_time)
             super().update()
             return
 
         self.change_x = 0
         self.change_y = 0
-
         if self.attack_timer > 0:
             self.attack_timer -= delta_time
 
-        if player and player.is_alive():
-            if self._is_player_in_attack_range(player) and self.attack_timer <= 0:
-                self.attack_player(player)
+        if player and player.is_alive() and self._is_player_in_attack_range(player) and self.attack_timer <= 0:
+            self.attack_player(player)
 
         if player is not None:
-            distance_to_player = self._distance_to(player)
-            distance_to_spawn = self._distance_to_point(self.spawn_x, self.spawn_y)
-
-            if self.is_aggroed or distance_to_player <= self.detection_range:
-                self.state = "chase"
-            elif self.state == "chase" and distance_to_player > self.detection_range * 1.2:
-                self.state = "return"
-            elif self.state == "return" and distance_to_spawn < 10:
-                self.state = "wander"
-
-            if self.state == "chase":
-                self.current_speed = self.base_speed
-                self._move_towards_point(player.center_x, player.center_y)
-            elif self.state == "return":
-                self.current_speed = self.base_speed * 2.0
-                self._move_towards_point(self.spawn_x, self.spawn_y)
-            else:
-                self.current_speed = self.base_speed * 0.5
-                self._wander(delta_time)
+            self._update_state(player, delta_time)
 
         if enemies_list is not None:
             self._apply_separation_from_enemies(enemies_list)
-
         if player is not None:
             self._apply_separation_from_player(player)
 
         super().update(delta_time)
 
+    def _update_death(self, delta_time):
+        self.change_x = 0
+        self.change_y = 0
+
+        if not self.is_dying:
+            self.is_dying = True
+            self.death_timer = self.death_duration
+            self.color = arcade.color.GRAY
+
+        self.death_timer -= delta_time
+        if self.death_timer <= 0:
+            self.kill()
+
+    def _update_state(self, player, delta_time):
+        distance_to_player = self._distance_to(player)
+        distance_to_spawn = self._distance_to_point(self.spawn_x, self.spawn_y)
+
+        if self.is_aggroed or distance_to_player <= self.detection_range:
+            self.state = "chase"
+        elif self.state == "chase" and distance_to_player > self.detection_range * 1.2:
+            self.state = "return"
+        elif self.state == "return" and distance_to_spawn < 10:
+            self.state = "wander"
+
+        if self.state == "chase":
+            self.current_speed = self.base_speed
+            self._move_towards_point(player.center_x, player.center_y)
+        elif self.state == "return":
+            self.current_speed = self.base_speed * 2.0
+            self._move_towards_point(self.spawn_x, self.spawn_y)
+        else:
+            self.current_speed = self.base_speed * 0.5
+            self._wander(delta_time)
+
     def attack_player(self, player):
-        if self.attack_timer <= 0:
-            damage = dices.roll_dice(self.attack_damage)
-            player.resolve_attack(self.get_attack_modifier(), damage)
-            self.attack_timer = self.attack_cooldown
+        if self.attack_timer > 0:
+            return
+
+        player.resolve_attack(self.get_attack_modifier(), dices.roll_dice(self.attack_damage))
+        self.attack_timer = self.attack_cooldown
 
     def take_damage(self, damage):
         previous_hp = self.current_hp
@@ -139,9 +143,9 @@ class Enemy(Entity, arcade.Sprite):
 
             dx = self.center_x - other.center_x
             dy = self.center_y - other.center_y
-            distance = math.sqrt(dx ** 2 + dy ** 2)
-
+            distance = math.hypot(dx, dy)
             min_distance = (self.width / 2 + other.width / 2) + 5
+
             if 0 < distance < min_distance:
                 dx /= distance
                 dy /= distance
@@ -152,9 +156,9 @@ class Enemy(Entity, arcade.Sprite):
     def _apply_separation_from_player(self, player):
         dx = self.center_x - player.center_x
         dy = self.center_y - player.center_y
-        distance = math.sqrt(dx ** 2 + dy ** 2)
+        distance = math.hypot(dx, dy)
+        min_distance = (self.width / 2 + player.width / 2) + 10
 
-        min_distance = self._get_player_separation_distance(player)
         if 0 < distance < min_distance:
             dx /= distance
             dy /= distance
@@ -162,33 +166,24 @@ class Enemy(Entity, arcade.Sprite):
             self.change_x += dx * strength
             self.change_y += dy * strength
 
-    def _get_player_separation_distance(self, player):
-        return (self.width / 2 + player.width / 2) + 10
-
     def _distance_to(self, other):
-        dx = other.center_x - self.center_x
-        dy = other.center_y - self.center_y
-        return math.sqrt(dx ** 2 + dy ** 2)
+        return math.hypot(other.center_x - self.center_x, other.center_y - self.center_y)
 
     def _distance_to_point(self, x, y):
-        dx = x - self.center_x
-        dy = y - self.center_y
-        return math.sqrt(dx ** 2 + dy ** 2)
+        return math.hypot(x - self.center_x, y - self.center_y)
 
     def _move_towards_point(self, target_x, target_y):
         dx = target_x - self.center_x
         dy = target_y - self.center_y
-        distance = math.sqrt(dx ** 2 + dy ** 2)
+        distance = math.hypot(dx, dy)
+        if distance <= 0:
+            return
 
-        if distance > 0:
-            dx /= distance
-            dy /= distance
-            self.change_x += dx * self.current_speed
-            self.change_y += dy * self.current_speed
+        self.change_x += (dx / distance) * self.current_speed
+        self.change_y += (dy / distance) * self.current_speed
 
     def _wander(self, delta_time):
         self.wander_timer -= delta_time
-
         if self.wander_timer <= 0:
             angle = random.uniform(0, 2 * math.pi)
             self.wander_direction = (math.cos(angle), math.sin(angle))
@@ -205,7 +200,6 @@ class Enemy(Entity, arcade.Sprite):
         bar_width = 40
         bar_height = 6
         y_offset = 35
-
         health_percent = max(0, self.current_hp) / self.max_hp
         current_bar_width = bar_width * health_percent
 
@@ -214,10 +208,12 @@ class Enemy(Entity, arcade.Sprite):
             arcade.color.RED,
         )
 
-        if current_bar_width > 0:
-            left_edge = self.center_x - (bar_width / 2)
-            green_center_x = left_edge + (current_bar_width / 2)
-            arcade.draw_rect_filled(
-                arcade.XYWH(green_center_x, self.center_y + y_offset, current_bar_width, bar_height),
-                arcade.color.GREEN,
-            )
+        if current_bar_width <= 0:
+            return
+
+        left_edge = self.center_x - (bar_width / 2)
+        green_center_x = left_edge + (current_bar_width / 2)
+        arcade.draw_rect_filled(
+            arcade.XYWH(green_center_x, self.center_y + y_offset, current_bar_width, bar_height),
+            arcade.color.GREEN,
+        )

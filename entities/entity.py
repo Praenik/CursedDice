@@ -2,6 +2,23 @@ import arcade
 
 from core import dices
 
+DEFAULT_STATS = {
+    "strength": 10,
+    "dexterity": 10,
+    "constitution": 10,
+    "intelligence": 10,
+    "wisdom": 10,
+    "charisma": 10,
+}
+STAT_TO_MODIFIER = {
+    "strength": "str_mod",
+    "dexterity": "dex_mod",
+    "constitution": "con_mod",
+    "intelligence": "int_mod",
+    "wisdom": "wis_mod",
+    "charisma": "cha_mod",
+}
+
 
 class Entity:
     """Base entity with stats and health."""
@@ -13,28 +30,11 @@ class Entity:
         self.combat_feedback_timer = 0.0
         self.combat_feedback_duration = 0.0
         self.combat_feedback_offset = 0.0
-
-        if stats is None:
-            self.stats = {
-                "strength": 10,
-                "dexterity": 10,
-                "constitution": 10,
-                "intelligence": 10,
-                "wisdom": 10,
-                "charisma": 10,
-            }
-        else:
-            default_keys = [
-                "strength",
-                "dexterity",
-                "constitution",
-                "intelligence",
-                "wisdom",
-                "charisma",
-            ]
-            self.stats = {}
-            for key in default_keys:
-                self.stats[key] = stats.get(key, 10)
+        source_stats = DEFAULT_STATS if stats is None else stats
+        self.stats = {
+            key: source_stats.get(key, default_value)
+            for key, default_value in DEFAULT_STATS.items()
+        }
 
         self._calculate_derived_stats()
         self.current_hp = self.max_hp
@@ -51,9 +51,7 @@ class Entity:
         self.base_ac = 10 + self.modifiers["dex_mod"]
 
         self.base_hp = 10
-        self.max_hp = self.base_hp + self.modifiers["con_mod"]
-        if self.max_hp < 1:
-            self.max_hp = 1
+        self.max_hp = max(1, self.base_hp + self.modifiers["con_mod"])
 
     def update_stat(self, stat_name, value):
         if stat_name in self.stats:
@@ -62,15 +60,7 @@ class Entity:
             self.current_hp = min(self.current_hp, self.max_hp)
 
     def get_modifier(self, stat_name):
-        mod_map = {
-            "strength": "str_mod",
-            "dexterity": "dex_mod",
-            "constitution": "con_mod",
-            "intelligence": "int_mod",
-            "wisdom": "wis_mod",
-            "charisma": "cha_mod",
-        }
-        mod_key = mod_map.get(stat_name)
+        mod_key = STAT_TO_MODIFIER.get(stat_name)
         if mod_key:
             return self.modifiers[mod_key]
         return 0

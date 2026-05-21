@@ -72,7 +72,7 @@ class ClassSelectView(arcade.View):
         self._draw_title_banner()
 
         arcade.draw_text(
-            "ESC - \u043d\u0430\u0437\u0430\u0434",
+            "ESC - назад",
             SCREEN_WIDTH // 2,
             30,
             arcade.color.LIGHT_GRAY,
@@ -197,16 +197,16 @@ class ClassSelectView(arcade.View):
 
         stats_y = SCREEN_HEIGHT - 480
         stats = [
-            f"\u0421\u0418\u041b: {char_class.stats['strength']:2d}  ({char_class.get_modifier('strength'):+d})",
-            f"\u041b\u041e\u0412: {char_class.stats['dexterity']:2d}  ({char_class.get_modifier('dexterity'):+d})",
-            f"\u0422\u0415\u041b: {char_class.stats['constitution']:2d}  ({char_class.get_modifier('constitution'):+d})",
-            f"\u0418\u041d\u0422: {char_class.stats['intelligence']:2d}  ({char_class.get_modifier('intelligence'):+d})",
-            f"\u041c\u0423\u0414: {char_class.stats['wisdom']:2d}  ({char_class.get_modifier('wisdom'):+d})",
-            f"\u0425\u0410\u0420: {char_class.stats['charisma']:2d}  ({char_class.get_modifier('charisma'):+d})",
+            f"СИЛ: {char_class.stats['strength']:2d}  ({char_class.get_modifier('strength'):+d})",
+            f"ЛОВ: {char_class.stats['dexterity']:2d}  ({char_class.get_modifier('dexterity'):+d})",
+            f"ТЕЛ: {char_class.stats['constitution']:2d}  ({char_class.get_modifier('constitution'):+d})",
+            f"ИНТ: {char_class.stats['intelligence']:2d}  ({char_class.get_modifier('intelligence'):+d})",
+            f"МУД: {char_class.stats['wisdom']:2d}  ({char_class.get_modifier('wisdom'):+d})",
+            f"ХАР: {char_class.stats['charisma']:2d}  ({char_class.get_modifier('charisma'):+d})",
         ]
 
         arcade.draw_text(
-            "\u0425\u0410\u0420\u0410\u041a\u0422\u0415\u0420\u0418\u0421\u0422\u0418\u041a\u0418",
+            "ХАРАКТЕРИСТИКИ",
             center_x,
             stats_y,
             arcade.color.WHITE,
@@ -263,9 +263,10 @@ class ClassSelectView(arcade.View):
         current_len = 0
 
         for word in words:
-            if current_len + len(word) + 1 <= max_chars:
+            extra_space = 1 if current_line else 0
+            if current_len + len(word) + extra_space <= max_chars:
                 current_line.append(word)
-                current_len += len(word) + 1
+                current_len += len(word) + extra_space
             else:
                 lines.append(" ".join(current_line))
                 current_line = [word]

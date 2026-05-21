@@ -2,6 +2,11 @@ import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 
+PANEL_WIDTH = 420
+PANEL_HEIGHT = 280
+MENU_STEP = 62
+HIGHLIGHT_WIDTH = 340
+
 
 class PauseView(arcade.View):
     def __init__(self, game_view):
@@ -24,23 +29,21 @@ class PauseView(arcade.View):
             (0, 0, 0, 185),
         )
 
-        panel_width = 420
-        panel_height = 280
-        panel_left = (SCREEN_WIDTH - panel_width) / 2
-        panel_bottom = (SCREEN_HEIGHT - panel_height) / 2
+        panel_left = (SCREEN_WIDTH - PANEL_WIDTH) / 2
+        panel_bottom = (SCREEN_HEIGHT - PANEL_HEIGHT) / 2
 
         arcade.draw_lbwh_rectangle_filled(
             panel_left,
             panel_bottom,
-            panel_width,
-            panel_height,
+            PANEL_WIDTH,
+            PANEL_HEIGHT,
             (22, 26, 38, 245),
         )
         arcade.draw_lbwh_rectangle_outline(
             panel_left,
             panel_bottom,
-            panel_width,
-            panel_height,
+            PANEL_WIDTH,
+            PANEL_HEIGHT,
             arcade.color.GOLD,
             3,
         )
@@ -48,30 +51,30 @@ class PauseView(arcade.View):
         arcade.draw_text(
             "ПАУЗА",
             SCREEN_WIDTH / 2,
-            panel_bottom + panel_height - 62,
+            panel_bottom + PANEL_HEIGHT - 62,
             arcade.color.GOLD,
             38,
             anchor_x="center",
             bold=True,
         )
         arcade.draw_text(
-            "Прохождение остановлено и ждёт продолжения",
+            "Забег остановлен. Можно перевести дух.",
             SCREEN_WIDTH / 2,
-            panel_bottom + panel_height - 98,
+            panel_bottom + PANEL_HEIGHT - 98,
             arcade.color.LIGHT_GRAY,
             16,
             anchor_x="center",
         )
 
         for index, item in enumerate(self.menu_items):
-            item_y = panel_bottom + 128 - (index * 62)
+            item_y = panel_bottom + 128 - (index * MENU_STEP)
             color = arcade.color.YELLOW if index == self.selected_index else arcade.color.LIGHT_GRAY
 
             if index == self.selected_index:
                 arcade.draw_lbwh_rectangle_filled(
-                    (SCREEN_WIDTH / 2) - 170,
+                    (SCREEN_WIDTH / 2) - (HIGHLIGHT_WIDTH / 2),
                     item_y - 12,
-                    340,
+                    HIGHLIGHT_WIDTH,
                     42,
                     (70, 62, 24, 180),
                 )
@@ -86,7 +89,7 @@ class PauseView(arcade.View):
             )
 
         arcade.draw_text(
-            "ESC - продолжить",
+            "ESC - вернуться в игру",
             SCREEN_WIDTH / 2,
             panel_bottom + 26,
             arcade.color.LIGHT_GRAY,
@@ -95,9 +98,8 @@ class PauseView(arcade.View):
         )
 
     def _get_menu_item_bounds(self, index):
-        panel_height = 280
-        panel_bottom = (SCREEN_HEIGHT - panel_height) / 2
-        item_y = panel_bottom + 128 - (index * 62)
+        panel_bottom = (SCREEN_HEIGHT - PANEL_HEIGHT) / 2
+        item_y = panel_bottom + 128 - (index * MENU_STEP)
         return SCREEN_WIDTH / 2, item_y + 8, 170, 21
 
     def _return_to_game(self):

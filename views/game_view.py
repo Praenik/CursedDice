@@ -1,3 +1,4 @@
+import math
 import random
 
 import arcade
@@ -9,6 +10,8 @@ from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
 from entities.player import Player
 
 GAME_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "battlefield_ground.png")
+MIN_SPAWN_DISTANCE = 150
+SPAWN_MARGIN = 50
 
 
 class GameView(arcade.View):
@@ -74,14 +77,11 @@ class GameView(arcade.View):
 
     def _get_spawn_position(self):
         while True:
-            spawn_x = random.randint(50, SCREEN_WIDTH - 50)
-            spawn_y = random.randint(50, SCREEN_HEIGHT - 50)
+            spawn_x = random.randint(SPAWN_MARGIN, SCREEN_WIDTH - SPAWN_MARGIN)
+            spawn_y = random.randint(SPAWN_MARGIN, SCREEN_HEIGHT - SPAWN_MARGIN)
+            distance = math.hypot(spawn_x - self.player.center_x, spawn_y - self.player.center_y)
 
-            dx = spawn_x - self.player.center_x
-            dy = spawn_y - self.player.center_y
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-
-            if distance > 150:
+            if distance > MIN_SPAWN_DISTANCE:
                 return spawn_x, spawn_y
 
     def _update_wave_state(self, delta_time):
@@ -148,7 +148,7 @@ class GameView(arcade.View):
                 font_name="Kenney Future",
             )
             arcade.draw_text(
-                "Нажмите ESC для выхода в меню",
+                "Нажмите ESC, чтобы выйти в меню",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 60,
                 arcade.color.WHITE,
@@ -174,7 +174,7 @@ class GameView(arcade.View):
                 anchor_x="center",
             )
             arcade.draw_text(
-                "Нажмите ESC для выхода в меню",
+                "Нажмите ESC, чтобы выйти в меню",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 95,
                 arcade.color.WHITE,
@@ -384,18 +384,9 @@ class GameView(arcade.View):
         self.player.change_y = 0
 
         is_playing = not self.game_over and not self.game_completed
-
         if is_playing:
             self.elapsed_time += delta_time
-
-            if self.up and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_y += self.player.speed
-            if self.down and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_y -= self.player.speed
-            if self.left and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_x -= self.player.speed
-            if self.right and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_x += self.player.speed
+            self._update_player_movement()
 
         self.player.update(delta_time)
         self.player_physics.update()
@@ -430,6 +421,19 @@ class GameView(arcade.View):
         self._clamp_to_bounds(self.player)
         for enemy in self.enemies_list:
             self._clamp_to_bounds(enemy)
+
+    def _update_player_movement(self):
+        if self.player.is_stunned() or self.player.is_charmed():
+            return
+
+        if self.up:
+            self.player.change_y += self.player.speed
+        if self.down:
+            self.player.change_y -= self.player.speed
+        if self.left:
+            self.player.change_x -= self.player.speed
+        if self.right:
+            self.player.change_x += self.player.speed
 
     def _clamp_to_bounds(self, sprite):
         if sprite.left < 0:
@@ -507,7 +511,7 @@ class GameView(arcade.View):
     def _lock_attack_direction(self):
         dx = self.mouse_x - self.player.center_x
         dy = self.mouse_y - self.player.center_y
-        distance = (dx ** 2 + dy ** 2) ** 0.5
+        distance = math.hypot(dx, dy)
         self.player.face_towards(self.mouse_x)
 
         if distance == 0:

@@ -41,9 +41,8 @@ def add_leaderboard_entry(class_name, texture_name, time_seconds, wave_reached):
 
 def save_leaderboard_entries(entries):
     LEADERBOARD_FILE.parent.mkdir(parents=True, exist_ok=True)
-    sorted_entries = sort_leaderboard_entries(entries)
     with LEADERBOARD_FILE.open("w", encoding="utf-8") as leaderboard_file:
-        json.dump(sorted_entries, leaderboard_file, ensure_ascii=False, indent=2)
+        json.dump(sort_leaderboard_entries(entries), leaderboard_file, ensure_ascii=False, indent=2)
 
 
 def sort_leaderboard_entries(entries):
@@ -73,16 +72,13 @@ def _normalize_entry(entry):
 
     class_name = entry.get("class_name")
     texture_name = entry.get("texture_name")
-    time_seconds = entry.get("time_seconds")
-    wave_reached = entry.get("wave_reached")
-
     if not isinstance(class_name, str) or not isinstance(texture_name, str):
         return None
 
     try:
-        normalized_time = round(float(time_seconds), 1)
-        normalized_wave = int(wave_reached)
-    except (TypeError, ValueError):
+        normalized_time = round(float(entry["time_seconds"]), 1)
+        normalized_wave = int(entry["wave_reached"])
+    except (KeyError, TypeError, ValueError):
         return None
 
     if normalized_wave < 1 or normalized_time < 0:

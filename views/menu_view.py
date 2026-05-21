@@ -5,6 +5,9 @@ from core.resources import resource_path
 
 MENU_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "menu_background.png")
 MENU_LOGO_TEXTURE = resource_path("assets", "textures", "ui", "menu_logo.png")
+MENU_PANEL_WIDTH = 520
+MENU_PANEL_HEIGHT = 286
+MENU_ITEM_STEP = 60
 
 
 class MenuView(arcade.View):
@@ -27,24 +30,24 @@ class MenuView(arcade.View):
                     "Об игре",
                     [
                         "Cursed Dice - аркадный survival в духе настольных RPG.",
-                        "Выбирай класс, переживай волны врагов и используй сильные стороны героя.",
+                        "Выберите класс, переживите волны врагов и разыграйте сильные стороны героя.",
                     ],
                 ),
                 (
-                    "Суть и цель",
+                    "Цель",
                     [
-                        "Выжить до конца всех волн и пройти забег как можно быстрее.",
-                        "После поражения или победы результат попадает в таблицу рекордов.",
+                        "Дойти до конца всех волн и сделать это как можно быстрее.",
+                        "После победы или поражения результат попадёт в таблицу рекордов.",
                     ],
                 ),
                 (
                     "Управление",
                     [
-                        "WASD / стрелки - движение.",
+                        "WASD или стрелки - движение.",
                         "ЛКМ - атака в сторону курсора.",
-                        "Q - короткий отдых: восстанавливает около половины HP, зарядов 2.",
+                        "Q - короткий отдых: восстанавливает примерно половину HP, зарядов 2.",
                         "E - длинный отдых: полностью лечит, заряд 1.",
-                        "ESC - пауза во время забега, а в меню и правилах - возврат назад.",
+                        "ESC - пауза во время забега и возврат назад в меню.",
                     ],
                 ),
             ],
@@ -52,10 +55,10 @@ class MenuView(arcade.View):
                 (
                     "Противники",
                     [
-                        "Гоблин - самый простой враг, давит числом и скоростью.",
-                        "Варг - быстрый хищник: укус может оглушить, если провалить спасбросок силы.",
-                        "Нильбог - опасный трикстер: очаровывает атакующего, один раз отменяет урон лечением и накладывает помеху следующей атаке.",
-                        "Хобгоблин - дисциплинированный боец: наносит дополнительный урон, если рядом с целью есть союзник.",
+                        "Гоблин - базовый враг, который давит количеством.",
+                        "Ворг - быстрый хищник: укус может оглушить при провале спасброска силы.",
+                        "Нильбог - трикстер: очаровывает атакующего, один раз превращает урон в лечение и навешивает помеху на следующую атаку.",
+                        "Хобгоблин - дисциплинированный боец: бьёт сильнее, если рядом есть союзник.",
                         "Багбир - крепкий громила ближнего боя, который периодически швыряет валун с дистанции.",
                     ],
                 )
@@ -70,7 +73,7 @@ class MenuView(arcade.View):
         self._draw_logo()
 
         for index, item in enumerate(self.menu_items):
-            y = SCREEN_HEIGHT // 2 - index * 60
+            y = SCREEN_HEIGHT // 2 - index * MENU_ITEM_STEP
 
             if index == self.selected_index and not self.rules_modal_open:
                 color = arcade.color.YELLOW
@@ -131,17 +134,17 @@ class MenuView(arcade.View):
             (8, 6, 8, 118),
         )
         arcade.draw_lbwh_rectangle_filled(
-            int((SCREEN_WIDTH - 520) / 2),
+            int((SCREEN_WIDTH - MENU_PANEL_WIDTH) / 2),
             148,
-            520,
-            286,
+            MENU_PANEL_WIDTH,
+            MENU_PANEL_HEIGHT,
             (14, 10, 12, 158),
         )
         arcade.draw_lbwh_rectangle_outline(
-            int((SCREEN_WIDTH - 520) / 2),
+            int((SCREEN_WIDTH - MENU_PANEL_WIDTH) / 2),
             148,
-            520,
-            286,
+            MENU_PANEL_WIDTH,
+            MENU_PANEL_HEIGHT,
             (173, 132, 69, 175),
             2,
         )
@@ -203,7 +206,7 @@ class MenuView(arcade.View):
             bold=True,
         )
         arcade.draw_text(
-            "Краткая памятка перед забегом",
+            "Короткая памятка перед забегом",
             modal_center_x,
             modal_top - 88,
             arcade.color.LIGHT_GRAY,
@@ -327,7 +330,7 @@ class MenuView(arcade.View):
         return left, bottom, width, height
 
     def _get_menu_item_bounds(self, index):
-        item_y = SCREEN_HEIGHT // 2 - index * 60
+        item_y = SCREEN_HEIGHT // 2 - index * MENU_ITEM_STEP
         return SCREEN_WIDTH // 2, item_y, 180, 30
 
     def _is_point_inside_box(self, x, y, bounds):

@@ -4,6 +4,11 @@ from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.leaderboard import format_time, load_leaderboard_entries
 from entities.player import load_player_texture_pair
 
+TABLE_WIDTH = 940
+ROW_HEIGHT = 58
+MAX_ROWS = 10
+PREVIEW_SIZE = 40
+
 
 class LeaderboardView(arcade.View):
     def __init__(self):
@@ -12,7 +17,7 @@ class LeaderboardView(arcade.View):
         self.refresh_entries()
 
     def refresh_entries(self):
-        self.entries = load_leaderboard_entries()[:10]
+        self.entries = load_leaderboard_entries()[:MAX_ROWS]
 
     def on_show_view(self):
         self.refresh_entries()
@@ -31,7 +36,7 @@ class LeaderboardView(arcade.View):
             bold=True,
         )
         arcade.draw_text(
-            "Сортировка: выше волна, при равной волне меньшее время",
+            "Сначала выше волна, а при равенстве лучше меньшее время.",
             SCREEN_WIDTH // 2,
             SCREEN_HEIGHT - 128,
             arcade.color.LIGHT_GRAY,
@@ -51,14 +56,11 @@ class LeaderboardView(arcade.View):
         )
 
     def _draw_table(self):
-        table_width = 940
-        table_left = (SCREEN_WIDTH - table_width) / 2
+        table_left = (SCREEN_WIDTH - TABLE_WIDTH) / 2
         header_center_y = SCREEN_HEIGHT - 180
-        row_height = 58
-        row_width = table_width
 
         arcade.draw_rect_filled(
-            arcade.XYWH(SCREEN_WIDTH / 2, header_center_y, row_width, 46),
+            arcade.XYWH(SCREEN_WIDTH / 2, header_center_y, TABLE_WIDTH, 46),
             (44, 48, 62),
         )
 
@@ -86,11 +88,11 @@ class LeaderboardView(arcade.View):
 
         start_y = header_center_y - 60
         for index, entry in enumerate(self.entries):
-            center_y = start_y - (index * row_height)
+            center_y = start_y - (index * ROW_HEIGHT)
             row_color = (33, 36, 48) if index % 2 == 0 else (27, 30, 40)
 
             arcade.draw_rect_filled(
-                arcade.XYWH(SCREEN_WIDTH / 2, center_y, row_width, row_height - 6),
+                arcade.XYWH(SCREEN_WIDTH / 2, center_y, TABLE_WIDTH, ROW_HEIGHT - 6),
                 row_color,
             )
 
@@ -106,7 +108,7 @@ class LeaderboardView(arcade.View):
 
             texture = self._try_load_texture(entry["texture_name"])
             if texture is not None:
-                texture_width, texture_height = self._get_scaled_dimensions(texture.width, texture.height, 40)
+                texture_width, texture_height = self._get_scaled_dimensions(texture.width, texture.height, PREVIEW_SIZE)
                 arcade.draw_texture_rect(
                     texture,
                     arcade.XYWH(class_texture_x, center_y, texture_width, texture_height),

@@ -4,7 +4,7 @@ import random
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from core.leaderboard import add_leaderboard_entry
+from core.leaderboard import add_leaderboard_entry, format_time
 from core.resources import resource_path
 from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
 from entities.player import Player
@@ -63,10 +63,7 @@ class GameView(arcade.View):
         self.current_wave_index = next_wave_index
         self.waiting_for_next_wave = False
         self.wave_spawn_timer = 0.0
-        self._spawn_wave(self.waves[self.current_wave_index])
-
-    def _spawn_wave(self, enemy_classes):
-        for enemy_class in enemy_classes:
+        for enemy_class in self.waves[self.current_wave_index]:
             self._spawn_enemy(enemy_class)
 
     def _spawn_enemy(self, enemy_class):
@@ -117,11 +114,6 @@ class GameView(arcade.View):
     def _get_alive_enemy_count(self):
         return sum(1 for enemy in self.enemies_list if enemy.is_alive())
 
-    def _format_time(self, seconds):
-        minutes = int(seconds // 60)
-        remaining_seconds = seconds - (minutes * 60)
-        return f"{minutes:02d}:{remaining_seconds:04.1f}"
-
     def draw_game_frame(self, show_pause_hint=True):
         self.clear()
         arcade.set_background_color(arcade.color.BLACK)
@@ -166,7 +158,7 @@ class GameView(arcade.View):
                 font_name="Kenney Future",
             )
             arcade.draw_text(
-                f"Время прохождения: {self._format_time(self.completed_time)}",
+                f"Время прохождения: {format_time(self.completed_time)}",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 60,
                 arcade.color.WHITE,
@@ -212,7 +204,7 @@ class GameView(arcade.View):
         )
 
         arcade.draw_text(
-            f"Время: {self._format_time(self.elapsed_time)}",
+            f"Время: {format_time(self.elapsed_time)}",
             10,
             SCREEN_HEIGHT - 120,
             arcade.color.WHITE,
@@ -401,7 +393,7 @@ class GameView(arcade.View):
                 player=self.player,
                 enemies_list=self.enemies_list,
             )
-            if hasattr(enemy, "update_ranged_attack"):
+            if isinstance(enemy, Bugbear):
                 enemy.update_ranged_attack(delta_time, self.player, self.enemy_projectiles)
 
         for projectile in list(self.player_projectiles):

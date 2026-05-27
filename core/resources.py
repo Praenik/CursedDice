@@ -2,21 +2,17 @@ import sys
 from pathlib import Path
 
 
-def _runtime_root():
-    if getattr(sys, "frozen", False):
-        return Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
-    return Path(__file__).resolve().parent.parent
-
-
 def resource_path(*parts):
-    return _runtime_root().joinpath(*parts)
-
-
-def get_storage_path():
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return _runtime_root()
+        root = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    else:
+        root = Path(__file__).resolve().parent.parent
+    return root.joinpath(*parts)
 
 
 def storage_path(*parts):
-    return get_storage_path().joinpath(*parts)
+    if getattr(sys, "frozen", False):
+        root = Path(sys.executable).resolve().parent
+    else:
+        root = Path(__file__).resolve().parent.parent
+    return root.joinpath(*parts)

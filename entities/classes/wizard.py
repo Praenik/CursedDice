@@ -27,16 +27,9 @@ class Wizard(Player):
         self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
         self.set_attack_animation(
             [
-                {"texture_name": "wizard/wizard_attack_1.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack_2.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack_3.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack_3.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack_2.png", "body_height_override": self.base_body_height},
-                {"texture_name": "wizard/wizard_attack_1.png", "body_height_override": self.base_body_height},
-            ],
-            duration=0.44,
+                "wizard/wizard_attack_1.png",
+                "wizard/wizard_attack_2.png",
+            ]
         )
 
     def get_attack_damage(self):

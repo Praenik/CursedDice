@@ -31,16 +31,8 @@ class Fighter(Player):
         self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
         self.set_attack_animation(
             [
-                {"texture_name": "fighter/fighter_attack_1.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack_2.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack_3.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack_3.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack_2.png", "body_height_override": self.base_body_height},
-                {"texture_name": "fighter/fighter_attack_1.png", "body_height_override": self.base_body_height},
-            ],
-            duration=0.42,
+                "fighter/fighter_attack.png",
+            ]
         )
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
@@ -95,7 +87,7 @@ class Fighter(Player):
             )
 
     def get_attack_damage(self):
-        return max(1, dices.roll_dice(self.attack_damage, self.get_modifier("strength")))
+        return dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
 
     def get_attack_modifier(self):
         return self.get_modifier("strength")

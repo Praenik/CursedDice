@@ -28,16 +28,9 @@ class Ranger(Player):
         self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
         self.set_attack_animation(
             [
-                {"texture_name": "ranger/ranger_attack_1.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger_attack_2.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger.png", "body_height_override": self.base_body_height},
-                {"texture_name": "ranger/ranger_attack_3.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger_attack.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger_attack.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger_attack_1.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-                {"texture_name": "ranger/ranger_attack_1.png", "body_height_override": self.base_body_height, "match_base_texture_height": True},
-            ],
-            duration=0.36,
+                "ranger/ranger_attack_1.png",
+                "ranger/ranger_attack_2.png",
+            ]
         )
 
     def get_attack_damage(self):

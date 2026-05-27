@@ -61,7 +61,7 @@ class Enemy(Entity, arcade.Sprite):
             self.attack_timer -= delta_time
 
         if player and player.is_alive() and self._is_player_in_attack_range(player) and self.attack_timer <= 0:
-            self.attack_player(player)
+            self.attack_player(player, enemies_list)
 
         if player is not None:
             self._update_state(player, delta_time)
@@ -107,7 +107,7 @@ class Enemy(Entity, arcade.Sprite):
             self.current_speed = self.base_speed * 0.5
             self._wander(delta_time)
 
-    def attack_player(self, player):
+    def attack_player(self, player, enemies_list=None):
         if self.attack_timer > 0:
             return
 

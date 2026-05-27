@@ -28,7 +28,7 @@ class Worg(Enemy):
         self.color = (85, 95, 105)
         self.texture = self._create_texture()
 
-    def attack_player(self, player):
+    def attack_player(self, player, enemies_list=None):
         if self.attack_timer > 0:
             return
 
@@ -37,8 +37,7 @@ class Worg(Enemy):
         if hit:
             strength_save = dices.roll_d20(player.get_modifier("strength"))
             if strength_save < self.bite_save_dc:
-                target = player
-                target.stun(self.bite_stun_duration)
+                player.stun(self.bite_stun_duration)
 
         self.attack_timer = self.attack_cooldown
 

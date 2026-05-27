@@ -1,6 +1,5 @@
 import math
 from functools import lru_cache
-from pathlib import Path
 
 import arcade
 from PIL import Image
@@ -9,103 +8,25 @@ from core.resources import resource_path
 from entities.entity import Entity
 
 PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
-PLAYER_TEXTURE_MAX_SIZE = 84
-PLAYER_PREVIEW_MAX_SIZE = 160
-PLAYER_TEXTURE_SOURCE_MAX_SIZE = 384
+PLAYER_DRAW_SIZE = 84
 DEFAULT_PLAYER_NAME = "Игрок"
 DEFAULT_CLASS_NAME = "Авантюрист"
 HEAL_FEEDBACK_COLOR = (120, 255, 170)
 
 
 @lru_cache(maxsize=None)
-def resolve_player_texture_path(texture_name):
+def load_player_textures(texture_name):
     texture_path = PLAYER_TEXTURES_DIR / texture_name
-    if texture_path.exists():
-        return texture_path
-
-    fallback_name = Path(texture_name).name
-    matches = sorted(PLAYER_TEXTURES_DIR.rglob(fallback_name))
-    if len(matches) == 1:
-        return matches[0]
-
-    if not matches:
+    if not texture_path.exists():
         raise FileNotFoundError(f"Player texture '{texture_name}' was not found in {PLAYER_TEXTURES_DIR}")
 
-    variants = ", ".join(str(match.relative_to(PLAYER_TEXTURES_DIR)) for match in matches)
-    raise FileNotFoundError(f"Player texture '{texture_name}' is ambiguous; matches: {variants}")
-
-
-@lru_cache(maxsize=None)
-def load_player_texture_frame_data(texture_name):
-    texture_path = resolve_player_texture_path(texture_name)
     with Image.open(texture_path) as image:
         rgba_image = image.convert("RGBA")
-
-    alpha_bbox = rgba_image.getchannel("A").getbbox()
-    if alpha_bbox is not None:
-        rgba_image = rgba_image.crop(alpha_bbox)
-    rgba_image = _downscale_player_texture_source(rgba_image)
-
-    width, height = rgba_image.size
-    body_center_x, body_height = _measure_body_metrics(rgba_image)
-    body_delta_x = body_center_x - (width / 2)
-    bottom_delta_y = (height - 1) - (height / 2)
 
     return (
         arcade.Texture(rgba_image.copy()),
         arcade.Texture(rgba_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)),
-        width,
-        height,
-        body_delta_x,
-        bottom_delta_y,
-        body_height,
     )
-
-
-def load_player_texture_pair(texture_name):
-    right_texture, left_texture, *_ = load_player_texture_frame_data(texture_name)
-    return right_texture, left_texture
-
-
-def _downscale_player_texture_source(rgba_image):
-    width, height = rgba_image.size
-    largest_side = max(width, height)
-    if largest_side <= PLAYER_TEXTURE_SOURCE_MAX_SIZE:
-        return rgba_image
-
-    scale = PLAYER_TEXTURE_SOURCE_MAX_SIZE / largest_side
-    resized_width = max(1, round(width * scale))
-    resized_height = max(1, round(height * scale))
-    return rgba_image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
-
-
-def _measure_body_metrics(rgba_image):
-    width, height = rgba_image.size
-    if width <= 0 or height <= 0:
-        return 0.0, 0.0
-
-    alpha = rgba_image.getchannel("A")
-    body_top = int(height * 0.2)
-    body_bottom = max(body_top + 1, int(height * 0.82))
-    body_slice = alpha.crop((0, body_top, width, body_bottom))
-    body_bbox = body_slice.getbbox()
-    if body_bbox is None:
-        return width / 2, height
-
-    body_left, _, body_right, _ = body_bbox
-    body_center_x = (body_left + body_right - 1) / 2
-    body_width = max(1, body_right - body_left)
-    scan_half_width = max(8, int(body_width * 0.18))
-    scan_left = max(0, int(body_center_x - scan_half_width))
-    scan_right = min(width, int(body_center_x + scan_half_width) + 1)
-    center_slice = alpha.crop((scan_left, 0, scan_right, height))
-    center_bbox = center_slice.getbbox()
-    if center_bbox is None:
-        return body_center_x, height
-
-    body_height = max(1, center_bbox[3] - center_bbox[1])
-    return body_center_x, body_height
-
 
 class Player(Entity, arcade.Sprite):
     def __init__(self, name=DEFAULT_PLAYER_NAME, stats=None):
@@ -126,7 +47,6 @@ class Player(Entity, arcade.Sprite):
         self.attack_damage = 0
         self.attack_cooldown = 0.5
         self.attack_timer = 0.0
-        self.attack_animation_duration = 0.18
         self.is_attacking = False
 
         self.stun_timer = 0.0
@@ -141,11 +61,6 @@ class Player(Entity, arcade.Sprite):
         self.long_rest_charges = self.max_long_rest_charges
 
         self.texture_name = None
-        self.base_texture_frame_height = 0.0
-        self.base_body_delta_x = 0.0
-        self.base_bottom_delta_y = 0.0
-        self.base_body_height = 0.0
-        self.base_body_draw_height = 0.0
 
     def update(self, delta_time: float = 1 / 60):
         self.update_combat_feedback(delta_time)
@@ -223,34 +138,24 @@ class Player(Entity, arcade.Sprite):
         return had_disadvantage
 
     def use_short_rest(self):
-        return self._use_rest(self.short_rest_charges, math.ceil(self.max_hp / 2), "short")
-
-    def use_long_rest(self):
-        return self._use_rest(self.long_rest_charges, self.max_hp, "long")
-
-    def _use_rest(self, charges, heal_amount, rest_kind):
-        if not self._can_rest(charges):
+        if self.short_rest_charges <= 0 or not self.is_alive() or self.current_hp >= self.max_hp:
             return False
 
-        healed = self._heal_from_rest(heal_amount)
-        if healed <= 0:
-            return False
-
-        if rest_kind == "short":
-            self.short_rest_charges -= 1
-        else:
-            self.long_rest_charges -= 1
-
-        self.show_combat_feedback(f"+{healed}", HEAL_FEEDBACK_COLOR)
+        old_hp = self.current_hp
+        self.heal(math.ceil(self.max_hp / 2))
+        self.short_rest_charges -= 1
+        self.show_combat_feedback(f"+{self.current_hp - old_hp}", HEAL_FEEDBACK_COLOR)
         return True
 
-    def _can_rest(self, charges):
-        return charges > 0 and self.is_alive() and self.current_hp < self.max_hp
+    def use_long_rest(self):
+        if self.long_rest_charges <= 0 or not self.is_alive() or self.current_hp >= self.max_hp:
+            return False
 
-    def _heal_from_rest(self, amount):
-        previous_hp = self.current_hp
-        self.heal(amount)
-        return self.current_hp - previous_hp
+        old_hp = self.current_hp
+        self.heal(self.max_hp)
+        self.long_rest_charges -= 1
+        self.show_combat_feedback(f"+{self.current_hp - old_hp}", HEAL_FEEDBACK_COLOR)
+        return True
 
     def _apply_charm_movement(self):
         dx = self.charm_target.center_x - self.center_x
@@ -309,88 +214,19 @@ class Player(Entity, arcade.Sprite):
             2,
         )
 
-    def draw_preview(self, center_x, center_y):
-        preview_texture = self.texture_right or self.texture
-        if not preview_texture:
-            return
-
-        preview_width, preview_height = self._get_scaled_dimensions(
-            preview_texture.width,
-            preview_texture.height,
-            PLAYER_PREVIEW_MAX_SIZE,
-        )
-        arcade.draw_texture_rect(
-            preview_texture,
-            arcade.XYWH(center_x, center_y, preview_width, preview_height),
-            pixelated=True,
-        )
-
     def set_class_texture(self, texture_name):
         self.texture_name = texture_name
-        (
-            self.texture_right,
-            self.texture_left,
-            texture_width,
-            texture_height,
-            self.base_body_delta_x,
-            self.base_bottom_delta_y,
-            self.base_body_height,
-        ) = load_player_texture_frame_data(texture_name)
-
+        self.texture_right, self.texture_left = load_player_textures(texture_name)
         self.facing_direction = 1
         self.texture = self.texture_right
+        self.width = PLAYER_DRAW_SIZE
+        self.height = PLAYER_DRAW_SIZE
         self.sync_hit_box_to_texture()
-        self.width, self.height = self._get_scaled_dimensions(
-            texture_width,
-            texture_height,
-            PLAYER_TEXTURE_MAX_SIZE,
-        )
 
-        self.base_texture_frame_height = texture_height
-        texture_scale = self.height / texture_height if texture_height > 0 else 1.0
-        self.base_body_draw_height = self.base_body_height * texture_scale
-
-    def set_attack_texture(self, texture_name):
-        self.set_attack_animation([texture_name])
-
-    def set_attack_animation(self, frames, duration=None):
-        self.attack_animation_frames = [self._build_attack_frame(frame) for frame in frames]
-        if duration is not None:
-            self.attack_animation_duration = duration
-
-    def _build_attack_frame(self, frame_config):
-        body_height_override = None
-        scale_adjust = 1.0
-        match_base_texture_height = False
-
-        if isinstance(frame_config, str):
-            texture_name = frame_config
-        else:
-            texture_name = frame_config["texture_name"]
-            body_height_override = frame_config.get("body_height_override")
-            match_base_texture_height = frame_config.get("match_base_texture_height", False)
-
-        (
-            right_texture,
-            left_texture,
-            _width,
-            frame_height,
-            body_delta_x,
-            bottom_delta_y,
-            body_height,
-        ) = load_player_texture_frame_data(texture_name)
-
-        if match_base_texture_height and frame_height > 0 and self.base_texture_frame_height > 0:
-            scale_adjust = self.base_texture_frame_height / frame_height
-
-        return {
-            "right_texture": right_texture,
-            "left_texture": left_texture,
-            "offset_x": self.base_body_delta_x - body_delta_x,
-            "offset_y": self.base_bottom_delta_y - bottom_delta_y,
-            "body_height": self.base_body_height if body_height_override is not None else body_height,
-            "scale_adjust": scale_adjust,
-        }
+    def set_attack_animation(self, texture_names):
+        self.attack_animation_frames = []
+        for texture_name in texture_names:
+            self.attack_animation_frames.append(load_player_textures(texture_name))
 
     def face_towards(self, target_x):
         if target_x < self.center_x:
@@ -399,27 +235,13 @@ class Player(Entity, arcade.Sprite):
             self._set_facing_direction(1)
 
     def draw_current_frame(self):
-        texture, offset_x, offset_y, body_height, scale_adjust = self._get_current_draw_frame()
-        if texture is None or texture.height <= 0:
+        texture = self._get_current_draw_frame()
+        if texture is None:
             return
-
-        if body_height > 0 and self.base_body_draw_height > 0:
-            draw_scale = self.base_body_draw_height / body_height
-        else:
-            draw_scale = self.height / texture.height
-
-        draw_scale *= scale_adjust
-        draw_width = texture.width * draw_scale
-        draw_height = texture.height * draw_scale
 
         arcade.draw_texture_rect(
             texture,
-            arcade.XYWH(
-                self.center_x + (offset_x * draw_scale),
-                self.center_y + (offset_y * draw_scale),
-                draw_width,
-                draw_height,
-            ),
+            arcade.XYWH(self.center_x, self.center_y, self.width, self.height),
             color=self.color,
             angle=self._angle,
             pixelated=True,
@@ -437,49 +259,28 @@ class Player(Entity, arcade.Sprite):
     def _get_current_draw_frame(self):
         frame_index = self._get_attack_frame_index()
         if frame_index is not None:
-            frame = self.attack_animation_frames[frame_index]
-            if self.facing_direction < 0 and frame["left_texture"] is not None:
-                return (
-                    frame["left_texture"],
-                    -frame["offset_x"],
-                    frame["offset_y"],
-                    frame["body_height"],
-                    frame["scale_adjust"],
-                )
-            return (
-                frame["right_texture"],
-                frame["offset_x"],
-                frame["offset_y"],
-                frame["body_height"],
-                frame["scale_adjust"],
-            )
+            right_texture, left_texture = self.attack_animation_frames[frame_index]
+            if self.facing_direction < 0:
+                return left_texture
+            return right_texture
 
-        if self.facing_direction < 0 and self.texture_left is not None:
-            return self.texture_left, 0.0, 0.0, self.base_body_height, 1.0
-        return self.texture_right or self.texture, 0.0, 0.0, self.base_body_height, 1.0
+        if self.facing_direction < 0:
+            return self.texture_left
+        return self.texture_right
 
     def _get_attack_frame_index(self):
         if not self.is_attacking or not self.attack_animation_frames:
             return None
 
-        active_duration = min(self.attack_animation_duration, self.attack_cooldown)
-        if active_duration <= 0:
+        if self.attack_cooldown <= 0:
             return None
 
         elapsed = self.attack_cooldown - self.attack_timer
-        if elapsed < 0 or elapsed > active_duration:
+        if elapsed < 0 or elapsed > self.attack_cooldown:
             return None
 
-        progress = min(1.0, max(0.0, elapsed / active_duration))
+        progress = min(1.0, max(0.0, elapsed / self.attack_cooldown))
         return min(int(progress * len(self.attack_animation_frames)), len(self.attack_animation_frames) - 1)
-
-    def _get_scaled_dimensions(self, width, height, max_size):
-        largest_side = max(width, height)
-        if largest_side <= 0:
-            return width, height
-
-        scale = max_size / largest_side
-        return width * scale, height * scale
 
     def _tick_attack_timer(self, delta_time):
         if self.attack_timer <= 0:

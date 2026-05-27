@@ -25,22 +25,17 @@ class Hobgoblin(Enemy):
         self.attack_range = 55
         self.martial_advantage_used = False
         self.martial_advantage_ally_range = 90
-        self.current_enemies_list = None
         self.color = (165, 70, 45)
         self.texture = self._create_texture()
 
-    def update(self, delta_time: float = 1 / 60, player=None, enemies_list=None):
-        self.current_enemies_list = enemies_list
-        super().update(delta_time, player, enemies_list)
-
-    def attack_player(self, player):
+    def attack_player(self, player, enemies_list=None):
         if self.attack_timer > 0:
             return
 
         hit, attack_roll = player.is_hit_by(self.get_attack_modifier())
         if hit:
             base_damage = dices.roll_dice(self.attack_damage)
-            bonus_damage = self._get_martial_advantage_damage(player)
+            bonus_damage = self._get_martial_advantage_damage(player, enemies_list)
             total_damage = base_damage + bonus_damage
             player.take_damage(total_damage)
             player.show_combat_feedback(f"-{total_damage}", (255, 120, 120))
@@ -51,18 +46,18 @@ class Hobgoblin(Enemy):
 
         self.attack_timer = self.attack_cooldown
 
-    def _get_martial_advantage_damage(self, target):
-        if self.martial_advantage_used or not self._has_ally_near_target(target):
+    def _get_martial_advantage_damage(self, target, enemies_list):
+        if self.martial_advantage_used or not self._has_ally_near_target(target, enemies_list):
             return 0
 
         self.martial_advantage_used = True
         return dices.roll_dice(6) + dices.roll_dice(6)
 
-    def _has_ally_near_target(self, target):
-        if self.current_enemies_list is None:
+    def _has_ally_near_target(self, target, enemies_list):
+        if enemies_list is None:
             return False
 
-        for ally in self.current_enemies_list:
+        for ally in enemies_list:
             if ally is self or not ally.is_alive():
                 continue
             if arcade.get_distance_between_sprites(ally, target) <= self.martial_advantage_ally_range:

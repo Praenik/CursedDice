@@ -2,7 +2,7 @@ import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.leaderboard import format_time, load_leaderboard_entries
-from entities.player import load_player_texture_pair
+from entities.player import load_player_textures
 
 TABLE_WIDTH = 940
 ROW_HEIGHT = 58
@@ -108,10 +108,9 @@ class LeaderboardView(arcade.View):
 
             texture = self._try_load_texture(entry["texture_name"])
             if texture is not None:
-                texture_width, texture_height = self._get_scaled_dimensions(texture.width, texture.height, PREVIEW_SIZE)
                 arcade.draw_texture_rect(
                     texture,
-                    arcade.XYWH(class_texture_x, center_y, texture_width, texture_height),
+                    arcade.XYWH(class_texture_x, center_y, PREVIEW_SIZE, PREVIEW_SIZE),
                 )
 
             arcade.draw_text(
@@ -139,17 +138,9 @@ class LeaderboardView(arcade.View):
                 anchor_x="center",
             )
 
-    def _get_scaled_dimensions(self, width, height, max_size):
-        largest_side = max(width, height)
-        if largest_side <= 0:
-            return width, height
-
-        scale = max_size / largest_side
-        return width * scale, height * scale
-
     def _try_load_texture(self, texture_name):
         try:
-            return load_player_texture_pair(texture_name)[0]
+            return load_player_textures(texture_name)[0]
         except FileNotFoundError:
             return None
 

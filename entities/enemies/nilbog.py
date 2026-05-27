@@ -50,7 +50,7 @@ class Nilbog(Enemy):
         self.show_combat_feedback(f"-{damage}", (255, 120, 120))
         return True
 
-    def attack_player(self, player):
+    def attack_player(self, player, enemies_list=None):
         if self.attack_timer > 0:
             return
 
@@ -67,16 +67,15 @@ class Nilbog(Enemy):
         self.attack_timer = self.attack_cooldown
 
     def _nilbogism_blocks_attack(self, attacker):
-        if attacker is None or not hasattr(attacker, "get_modifier"):
+        if attacker is None:
             return False
 
         charisma_save = dices.roll_d20(attacker.get_modifier("charisma"))
         if charisma_save >= self.nilbogism_save_dc:
             return False
 
-        if hasattr(attacker, "charm"):
-            attacker.charm(self, self.nilbogism_charm_duration, self.nilbogism_charm_speed_multiplier)
-            attacker.show_combat_feedback("Очарован", (255, 220, 120))
+        attacker.charm(self, self.nilbogism_charm_duration, self.nilbogism_charm_speed_multiplier)
+        attacker.show_combat_feedback("Очарован", (255, 220, 120))
 
         self.show_combat_feedback("Nilbogism", MAGIC_FEEDBACK_COLOR)
         return True

@@ -6,7 +6,8 @@ LEADERBOARD_FILE = storage_path("leaderboard.json")
 
 
 def load_leaderboard_entries():
-    _ensure_leaderboard_file()
+    if not LEADERBOARD_FILE.exists():
+        return []
 
     try:
         with LEADERBOARD_FILE.open("r", encoding="utf-8") as leaderboard_file:
@@ -36,10 +37,6 @@ def add_leaderboard_entry(class_name, texture_name, time_seconds, wave_reached):
             "wave_reached": int(wave_reached),
         }
     )
-    save_leaderboard_entries(entries)
-
-
-def save_leaderboard_entries(entries):
     LEADERBOARD_FILE.parent.mkdir(parents=True, exist_ok=True)
     with LEADERBOARD_FILE.open("w", encoding="utf-8") as leaderboard_file:
         json.dump(sort_leaderboard_entries(entries), leaderboard_file, ensure_ascii=False, indent=2)
@@ -56,14 +53,6 @@ def format_time(seconds):
     minutes = int(seconds // 60)
     remaining_seconds = seconds - (minutes * 60)
     return f"{minutes:02d}:{remaining_seconds:04.1f}"
-
-
-def _ensure_leaderboard_file():
-    if LEADERBOARD_FILE.exists():
-        return
-
-    LEADERBOARD_FILE.parent.mkdir(parents=True, exist_ok=True)
-    LEADERBOARD_FILE.write_text("[]", encoding="utf-8")
 
 
 def _normalize_entry(entry):

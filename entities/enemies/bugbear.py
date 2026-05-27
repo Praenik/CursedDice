@@ -19,8 +19,7 @@ class Bugbear(Enemy):
                 "charisma": 11,
             },
         )
-        self.base_hp = 30
-        self.max_hp = self.base_hp + self.get_modifier("constitution")
+        self.max_hp = max(1, 30 + self.get_modifier("constitution"))
         self.current_hp = self.max_hp
 
         self.base_speed = 1.25
@@ -33,7 +32,7 @@ class Bugbear(Enemy):
         self.color = (135, 95, 55)
         self.texture = self._create_texture()
 
-    def attack_player(self, player):
+    def attack_player(self, player, enemies_list=None):
         if self.attack_timer > 0:
             return
 

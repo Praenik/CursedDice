@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
@@ -9,41 +7,19 @@ from entities.classes import Fighter, Ranger, Wizard
 CLASS_SELECT_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "menu_background.png")
 CLASS_SELECT_TITLE_TEXTURE = resource_path("assets", "textures", "ui", "class_select_title.png")
 PLAYER_PREVIEW_TEXTURE_DIR = resource_path("assets", "textures", "player")
-PLAYER_PREVIEW_MAX_SIZE = 160
-
-
-@dataclass(frozen=True)
-class ClassOption:
-    factory: type
-    class_name: str
-    class_description: str
-    stats: dict
-    preview_texture_name: str
-
-    def get_modifier(self, stat_name):
-        return (self.stats[stat_name] - 10) // 2
-
-    @property
-    def max_hp(self):
-        return max(1, 10 + self.get_modifier("constitution"))
-
-    @property
-    def base_ac(self):
-        return 10 + self.get_modifier("dexterity")
+PLAYER_PREVIEW_SIZE = 160
 
 
 class ClassSelectView(arcade.View):
     def __init__(self):
         super().__init__()
 
-        self.classes = [
-            self._create_class_option(Fighter),
-            self._create_class_option(Ranger),
-            self._create_class_option(Wizard),
-        ]
+        self.classes = [Fighter, Ranger, Wizard]
         self.preview_textures = {
-            char_class.preview_texture_name: arcade.load_texture(PLAYER_PREVIEW_TEXTURE_DIR / char_class.preview_texture_name)
-            for char_class in self.classes
+            player_class.PREVIEW_TEXTURE_NAME: arcade.load_texture(
+                PLAYER_PREVIEW_TEXTURE_DIR / player_class.PREVIEW_TEXTURE_NAME
+            )
+            for player_class in self.classes
         }
         self.selected_index = -1
         self.column_width = SCREEN_WIDTH // 3
@@ -54,15 +30,6 @@ class ClassSelectView(arcade.View):
         ]
         self.background_texture = arcade.load_texture(CLASS_SELECT_BACKGROUND_TEXTURE)
         self.title_texture = arcade.load_texture(CLASS_SELECT_TITLE_TEXTURE)
-
-    def _create_class_option(self, player_class):
-        return ClassOption(
-            factory=player_class,
-            class_name=player_class.CLASS_NAME,
-            class_description=player_class.CLASS_DESCRIPTION,
-            stats=dict(player_class.DEFAULT_STATS),
-            preview_texture_name=player_class.PREVIEW_TEXTURE_NAME,
-        )
 
     def on_draw(self):
         self.clear()
@@ -171,7 +138,7 @@ class ClassSelectView(arcade.View):
         )
 
         arcade.draw_text(
-            char_class.class_name.upper(),
+            char_class.CLASS_NAME.upper(),
             center_x,
             SCREEN_HEIGHT - 180,
             arcade.color.WHITE,
@@ -182,7 +149,7 @@ class ClassSelectView(arcade.View):
 
         self._draw_class_preview(char_class, center_x, SCREEN_HEIGHT - 280)
 
-        desc_lines = self.wrap_text(char_class.class_description, 25)
+        desc_lines = self.wrap_text(char_class.CLASS_DESCRIPTION, 25)
         desc_y = SCREEN_HEIGHT - 380
         for line in desc_lines:
             arcade.draw_text(
@@ -196,13 +163,14 @@ class ClassSelectView(arcade.View):
             desc_y -= 20
 
         stats_y = SCREEN_HEIGHT - 480
+        class_stats = char_class.DEFAULT_STATS
         stats = [
-            f"СИЛ: {char_class.stats['strength']:2d}  ({char_class.get_modifier('strength'):+d})",
-            f"ЛОВ: {char_class.stats['dexterity']:2d}  ({char_class.get_modifier('dexterity'):+d})",
-            f"ТЕЛ: {char_class.stats['constitution']:2d}  ({char_class.get_modifier('constitution'):+d})",
-            f"ИНТ: {char_class.stats['intelligence']:2d}  ({char_class.get_modifier('intelligence'):+d})",
-            f"МУД: {char_class.stats['wisdom']:2d}  ({char_class.get_modifier('wisdom'):+d})",
-            f"ХАР: {char_class.stats['charisma']:2d}  ({char_class.get_modifier('charisma'):+d})",
+            f"СИЛ: {class_stats['strength']:2d}  ({self.get_modifier(char_class, 'strength'):+d})",
+            f"ЛОВ: {class_stats['dexterity']:2d}  ({self.get_modifier(char_class, 'dexterity'):+d})",
+            f"ТЕЛ: {class_stats['constitution']:2d}  ({self.get_modifier(char_class, 'constitution'):+d})",
+            f"ИНТ: {class_stats['intelligence']:2d}  ({self.get_modifier(char_class, 'intelligence'):+d})",
+            f"МУД: {class_stats['wisdom']:2d}  ({self.get_modifier(char_class, 'wisdom'):+d})",
+            f"ХАР: {class_stats['charisma']:2d}  ({self.get_modifier(char_class, 'charisma'):+d})",
         ]
 
         arcade.draw_text(
@@ -228,8 +196,10 @@ class ClassSelectView(arcade.View):
             stats_y -= 18
 
         info_y = stats_y - 10
+        max_hp = max(1, 10 + self.get_modifier(char_class, "constitution"))
+        base_ac = 10 + self.get_modifier(char_class, "dexterity")
         arcade.draw_text(
-            f"HP: {char_class.max_hp}  |  AC: {char_class.base_ac}",
+            f"HP: {max_hp}  |  AC: {base_ac}",
             center_x,
             info_y,
             arcade.color.LIME,
@@ -239,20 +209,13 @@ class ClassSelectView(arcade.View):
         )
 
     def _draw_class_preview(self, char_class, center_x, center_y):
-        preview_texture = self.preview_textures.get(char_class.preview_texture_name)
+        preview_texture = self.preview_textures.get(char_class.PREVIEW_TEXTURE_NAME)
         if preview_texture is None:
             return
 
-        largest_side = max(preview_texture.width, preview_texture.height)
-        if largest_side <= 0:
-            return
-
-        scale = PLAYER_PREVIEW_MAX_SIZE / largest_side
-        preview_width = preview_texture.width * scale
-        preview_height = preview_texture.height * scale
         arcade.draw_texture_rect(
             preview_texture,
-            arcade.XYWH(center_x, center_y, preview_width, preview_height),
+            arcade.XYWH(center_x, center_y, PLAYER_PREVIEW_SIZE, PLAYER_PREVIEW_SIZE),
             pixelated=True,
         )
 
@@ -277,6 +240,9 @@ class ClassSelectView(arcade.View):
 
         return lines
 
+    def get_modifier(self, player_class, stat_name):
+        return (player_class.DEFAULT_STATS[stat_name] - 10) // 2
+
     def on_key_press(self, key, modifiers):
         if key == arcade.key.ESCAPE:
             from views.menu_view import MenuView
@@ -299,7 +265,7 @@ class ClassSelectView(arcade.View):
         if self.selected_index == -1:
             return
 
-        player = self.classes[self.selected_index].factory()
+        player = self.classes[self.selected_index]()
 
         from views.game_view import GameView
 

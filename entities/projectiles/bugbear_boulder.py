@@ -21,7 +21,14 @@ class BugbearBoulder(arcade.Sprite):
         self.width = 22
         self.height = 22
 
-        dir_x, dir_y = self._normalize(target_x - start_x, target_y - start_y)
+        dx = target_x - start_x
+        dy = target_y - start_y
+        distance = math.hypot(dx, dy)
+        if distance == 0:
+            dir_x, dir_y = 1.0, 0.0
+        else:
+            dir_x, dir_y = dx / distance, dy / distance
+
         self.velocity_x = dir_x * self.speed
         self.velocity_y = dir_y * self.speed
 
@@ -35,12 +42,7 @@ class BugbearBoulder(arcade.Sprite):
         self.center_y += self.velocity_y * delta_time * 60
         self.angle += 420 * delta_time
 
-        if (
-            self.right < 0
-            or self.left > SCREEN_WIDTH
-            or self.top < 0
-            or self.bottom > SCREEN_HEIGHT
-        ):
+        if self.right < 0 or self.left > SCREEN_WIDTH or self.top < 0 or self.bottom > SCREEN_HEIGHT:
             self.kill()
             return
 
@@ -52,29 +54,17 @@ class BugbearBoulder(arcade.Sprite):
             return
 
         collision_distance = (self.width / 2) + (player.width / 2)
-        if self._distance_to(player) <= collision_distance:
+        distance = math.hypot(player.center_x - self.center_x, player.center_y - self.center_y)
+        if distance <= collision_distance:
             damage = dices.roll_dice(6) + dices.roll_dice(6) + 3
             player.take_damage(damage)
             player.show_combat_feedback(f"-{damage}", (255, 120, 120))
             self.kill()
 
-    def _distance_to(self, player):
-        dx = player.center_x - self.center_x
-        dy = player.center_y - self.center_y
-        return math.hypot(dx, dy)
-
-    def _normalize(self, dx, dy):
-        distance = math.hypot(dx, dy)
-        if distance == 0:
-            return 1.0, 0.0
-        return dx / distance, dy / distance
-
     def _create_texture(self):
         img = Image.new("RGBA", (22, 22), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
-
         draw.ellipse((1, 1, 20, 20), fill=(105, 90, 78, 255), outline=(225, 215, 205, 255), width=2)
         draw.line([(5, 7), (10, 4), (16, 8)], fill=(65, 55, 50, 255), width=2)
         draw.line([(6, 15), (13, 17), (18, 13)], fill=(65, 55, 50, 255), width=2)
-
         return arcade.Texture(img)

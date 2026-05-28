@@ -55,16 +55,24 @@ class Fireball(arcade.Sprite):
         self.center_x += self.velocity_x * delta_time * 60
         self.center_y += self.velocity_y * delta_time * 60
 
-        if (
-            self.right < 0
-            or self.left > SCREEN_WIDTH
-            or self.top < 0
-            or self.bottom > SCREEN_HEIGHT
-        ):
+        if self.right < 0 or self.left > SCREEN_WIDTH or self.top < 0 or self.bottom > SCREEN_HEIGHT:
             self.kill()
             return
 
-        self._check_hit(enemies)
+        for enemy in enemies:
+            if not enemy.is_alive():
+                continue
+
+            collision_distance = (self.width / 2) + (enemy.width / 2)
+            if self._distance_to(enemy) <= collision_distance:
+                enemy.resolve_attack(
+                    self.attack_bonus,
+                    self.damage,
+                    attacker=self.attacker,
+                    disadvantage=self.attack_disadvantage,
+                )
+                self.kill()
+                return
 
     def _update_target(self, enemies):
         if self.target is not None:
@@ -100,26 +108,8 @@ class Fireball(arcade.Sprite):
         self.velocity_x = dir_x * self.speed
         self.velocity_y = dir_y * self.speed
 
-    def _check_hit(self, enemies):
-        for enemy in enemies:
-            if not enemy.is_alive():
-                continue
-
-            collision_distance = (self.width / 2) + (enemy.width / 2)
-            if self._distance_to(enemy) <= collision_distance:
-                enemy.resolve_attack(
-                    self.attack_bonus,
-                    self.damage,
-                    attacker=self.attacker,
-                    disadvantage=self.attack_disadvantage,
-                )
-                self.kill()
-                return
-
     def _distance_to(self, enemy):
-        dx = enemy.center_x - self.center_x
-        dy = enemy.center_y - self.center_y
-        return math.hypot(dx, dy)
+        return math.hypot(enemy.center_x - self.center_x, enemy.center_y - self.center_y)
 
     def _normalize(self, dx, dy):
         distance = math.hypot(dx, dy)

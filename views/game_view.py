@@ -1,14 +1,23 @@
+import math
 import random
 
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
-from entities.player import Player
+from core.leaderboard import add_leaderboard_entry, format_time
+from entities.enemies.bugbear import Bugbear
+from entities.enemies.goblin import Goblin
+from entities.enemies.hobgoblin import Hobgoblin
+from entities.enemies.nilbog import Nilbog
+from entities.enemies.worg import Worg
+
+GAME_BACKGROUND_TEXTURE = "assets/textures/backgrounds/battlefield_ground.png"
+MIN_SPAWN_DISTANCE = 150
+SPAWN_MARGIN = 50
 
 
 class GameView(arcade.View):
-    def __init__(self, player: Player):
+    def __init__(self, player):
         super().__init__()
 
         self.player = player
@@ -20,6 +29,7 @@ class GameView(arcade.View):
         self.wave_spawn_timer = 0.0
         self.waiting_for_next_wave = False
         self.current_wave_index = -1
+        self.result_saved = False
         self.waves = [
             [Goblin, Goblin, Goblin],
             [Goblin, Goblin, Worg, Worg],
@@ -29,9 +39,6 @@ class GameView(arcade.View):
         ]
         self.player.center_x = SCREEN_WIDTH // 2
         self.player.center_y = SCREEN_HEIGHT // 2
-
-        self.player_list = arcade.SpriteList()
-        self.player_list.append(self.player)
 
         self.enemies_list = arcade.SpriteList()
         self.player_projectiles = arcade.SpriteList()
@@ -47,6 +54,7 @@ class GameView(arcade.View):
         self.mouse_y = self.player.center_y
         self.attack_dir_x = None
         self.attack_dir_y = None
+        self.background_texture = arcade.load_texture(GAME_BACKGROUND_TEXTURE)
 
     def _spawn_next_wave(self):
         next_wave_index = self.current_wave_index + 1
@@ -57,10 +65,7 @@ class GameView(arcade.View):
         self.current_wave_index = next_wave_index
         self.waiting_for_next_wave = False
         self.wave_spawn_timer = 0.0
-        self._spawn_wave(self.waves[self.current_wave_index])
-
-    def _spawn_wave(self, enemy_classes):
-        for enemy_class in enemy_classes:
+        for enemy_class in self.waves[self.current_wave_index]:
             self._spawn_enemy(enemy_class)
 
     def _spawn_enemy(self, enemy_class):
@@ -71,14 +76,11 @@ class GameView(arcade.View):
 
     def _get_spawn_position(self):
         while True:
-            spawn_x = random.randint(50, SCREEN_WIDTH - 50)
-            spawn_y = random.randint(50, SCREEN_HEIGHT - 50)
+            spawn_x = random.randint(SPAWN_MARGIN, SCREEN_WIDTH - SPAWN_MARGIN)
+            spawn_y = random.randint(SPAWN_MARGIN, SCREEN_HEIGHT - SPAWN_MARGIN)
+            distance = math.hypot(spawn_x - self.player.center_x, spawn_y - self.player.center_y)
 
-            dx = spawn_x - self.player.center_x
-            dy = spawn_y - self.player.center_y
-            distance = (dx ** 2 + dy ** 2) ** 0.5
-
-            if distance > 150:
+            if distance > MIN_SPAWN_DISTANCE:
                 return spawn_x, spawn_y
 
     def _update_wave_state(self, delta_time):
@@ -109,18 +111,19 @@ class GameView(arcade.View):
         self.left = False
         self.right = False
         self.enemy_projectiles = arcade.SpriteList()
+        self._save_run_result()
 
     def _get_alive_enemy_count(self):
-        return sum(1 for enemy in self.enemies_list if enemy.is_alive())
+        enemies_alive = 0
+        for enemy in self.enemies_list:
+            if enemy.is_alive():
+                enemies_alive += 1
+        return enemies_alive
 
-    def _format_time(self, seconds):
-        minutes = int(seconds // 60)
-        remaining_seconds = seconds - (minutes * 60)
-        return f"{minutes:02d}:{remaining_seconds:04.1f}"
-
-    def on_draw(self):
+    def draw_game_frame(self, show_pause_hint=True):
         self.clear()
         arcade.set_background_color(arcade.color.BLACK)
+        self._draw_background()
 
         self.enemies_list.draw()
         for enemy in self.enemies_list:
@@ -129,7 +132,7 @@ class GameView(arcade.View):
 
         self.player_projectiles.draw()
         self.enemy_projectiles.draw()
-        self.player_list.draw()
+        self.player.draw_current_frame()
         self.player.draw_combat_feedback()
 
         if self.game_over:
@@ -143,7 +146,7 @@ class GameView(arcade.View):
                 font_name="Kenney Future",
             )
             arcade.draw_text(
-                "Нажмите ESC для выхода в меню",
+                "Нажмите ESC, чтобы выйти в меню",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 60,
                 arcade.color.WHITE,
@@ -161,7 +164,7 @@ class GameView(arcade.View):
                 font_name="Kenney Future",
             )
             arcade.draw_text(
-                f"Время прохождения: {self._format_time(self.completed_time)}",
+                f"Время прохождения: {format_time(self.completed_time)}",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 60,
                 arcade.color.WHITE,
@@ -169,7 +172,7 @@ class GameView(arcade.View):
                 anchor_x="center",
             )
             arcade.draw_text(
-                "Нажмите ESC для выхода в меню",
+                "Нажмите ESC, чтобы выйти в меню",
                 SCREEN_WIDTH / 2,
                 SCREEN_HEIGHT / 2 - 95,
                 arcade.color.WHITE,
@@ -207,7 +210,7 @@ class GameView(arcade.View):
         )
 
         arcade.draw_text(
-            f"Время: {self._format_time(self.elapsed_time)}",
+            f"Время: {format_time(self.elapsed_time)}",
             10,
             SCREEN_HEIGHT - 120,
             arcade.color.WHITE,
@@ -249,6 +252,43 @@ class GameView(arcade.View):
                 arcade.color.YELLOW,
                 16,
             )
+
+        if show_pause_hint and not self.game_over and not self.game_completed:
+            arcade.draw_text(
+                "ESC - пауза",
+                16,
+                16,
+                arcade.color.LIGHT_GRAY,
+                14,
+            )
+
+    def on_draw(self):
+        self.draw_game_frame()
+
+    def _draw_background(self):
+        if self.background_texture is None:
+            return
+
+        texture_width = self.background_texture.width
+        texture_height = self.background_texture.height
+        if texture_width <= 0 or texture_height <= 0:
+            return
+
+        texture_aspect = texture_width / texture_height
+        screen_aspect = SCREEN_WIDTH / SCREEN_HEIGHT
+
+        if texture_aspect >= screen_aspect:
+            draw_height = SCREEN_HEIGHT
+            draw_width = draw_height * texture_aspect
+        else:
+            draw_width = SCREEN_WIDTH
+            draw_height = draw_width / texture_aspect
+
+        arcade.draw_texture_rect(
+            self.background_texture,
+            arcade.XYWH(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, draw_width, draw_height),
+            pixelated=True,
+        )
 
     def _draw_rest_hud(self):
         icon_size = 58
@@ -342,18 +382,9 @@ class GameView(arcade.View):
         self.player.change_y = 0
 
         is_playing = not self.game_over and not self.game_completed
-
         if is_playing:
             self.elapsed_time += delta_time
-
-            if self.up and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_y += self.player.speed
-            if self.down and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_y -= self.player.speed
-            if self.left and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_x -= self.player.speed
-            if self.right and not self.player.is_stunned() and not self.player.is_charmed():
-                self.player.change_x += self.player.speed
+            self._update_player_movement()
 
         self.player.update(delta_time)
         self.player_physics.update()
@@ -368,7 +399,7 @@ class GameView(arcade.View):
                 player=self.player,
                 enemies_list=self.enemies_list,
             )
-            if hasattr(enemy, "update_ranged_attack"):
+            if isinstance(enemy, Bugbear):
                 enemy.update_ranged_attack(delta_time, self.player, self.enemy_projectiles)
 
         for projectile in list(self.player_projectiles):
@@ -379,13 +410,28 @@ class GameView(arcade.View):
                 projectile.update(delta_time, self.player)
 
         if not self.player.is_alive():
-            self.game_over = True
+            if not self.game_over:
+                self.game_over = True
+                self._save_run_result()
         elif is_playing:
             self._update_wave_state(delta_time)
 
         self._clamp_to_bounds(self.player)
         for enemy in self.enemies_list:
             self._clamp_to_bounds(enemy)
+
+    def _update_player_movement(self):
+        if self.player.is_stunned() or self.player.is_charmed():
+            return
+
+        if self.up:
+            self.player.change_y += self.player.speed
+        if self.down:
+            self.player.change_y -= self.player.speed
+        if self.left:
+            self.player.change_x -= self.player.speed
+        if self.right:
+            self.player.change_x += self.player.speed
 
     def _clamp_to_bounds(self, sprite):
         if sprite.left < 0:
@@ -397,6 +443,21 @@ class GameView(arcade.View):
             sprite.bottom = 0
         elif sprite.top > SCREEN_HEIGHT:
             sprite.top = SCREEN_HEIGHT
+
+    def _reset_input_state(self):
+        self.up = False
+        self.down = False
+        self.left = False
+        self.right = False
+        self.player.change_x = 0
+        self.player.change_y = 0
+
+    def open_pause_view(self):
+        self._reset_input_state()
+
+        from views.pause_view import PauseView
+
+        self.window.show_view(PauseView(self))
 
     def on_key_press(self, key, modifiers):
         if self.game_over or self.game_completed:
@@ -419,9 +480,7 @@ class GameView(arcade.View):
         elif key == arcade.key.D or key == arcade.key.RIGHT:
             self.right = True
         elif key == arcade.key.ESCAPE:
-            from views.menu_view import MenuView
-
-            self.window.show_view(MenuView())
+            self.open_pause_view()
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse_x = x
@@ -450,7 +509,8 @@ class GameView(arcade.View):
     def _lock_attack_direction(self):
         dx = self.mouse_x - self.player.center_x
         dy = self.mouse_y - self.player.center_y
-        distance = (dx ** 2 + dy ** 2) ** 0.5
+        distance = math.hypot(dx, dy)
+        self.player.face_towards(self.mouse_x)
 
         if distance == 0:
             self.attack_dir_x = 1.0
@@ -468,6 +528,20 @@ class GameView(arcade.View):
             self._lock_attack_direction()
             aim_x, aim_y = self._get_attack_aim()
             self.player.execute_attack(self, aim_x, aim_y)
+
+    def _save_run_result(self):
+        if self.result_saved:
+            return
+
+        wave_reached = max(1, self.current_wave_index + 1)
+        result_time = self.completed_time if self.game_completed else self.elapsed_time
+        add_leaderboard_entry(
+            self.player.class_name,
+            self.player.texture_name,
+            result_time,
+            wave_reached,
+        )
+        self.result_saved = True
 
     def on_key_release(self, key, modifiers):
         if key == arcade.key.W or key == arcade.key.UP:

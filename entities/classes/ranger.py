@@ -4,44 +4,43 @@ from entities.projectiles.arrow import Arrow
 
 
 class Ranger(Player):
-    def __init__(self, name="Следопыт"):
-        stats = {
-            "strength": 12,
-            "dexterity": 16,
-            "constitution": 14,
-            "intelligence": 10,
-            "wisdom": 14,
-            "charisma": 8,
-        }
-        super().__init__(name, stats)
-        self.class_name = "Следопыт"
-        self.class_description = "Быстрый стрелок, который держит дистанцию и точно работает по одиночным целям."
+    CLASS_NAME = "Следопыт"
+    CLASS_DESCRIPTION = "Быстрый стрелок, который держит дистанцию и стабильно разбирает одиночные цели."
+    DEFAULT_STATS = {
+        "strength": 12,
+        "dexterity": 16,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 14,
+        "charisma": 8,
+    }
+    PREVIEW_TEXTURE_NAME = "ranger/ranger.png"
+
+    def __init__(self, name=CLASS_NAME):
+        super().__init__(name, self.DEFAULT_STATS)
+        self.class_name = self.CLASS_NAME
+        self.class_description = self.CLASS_DESCRIPTION
         self.attack_range = 180
         self.attack_damage = 8
         self.attack_cooldown = 0.4
         self.speed = 2.0
 
-        self.set_class_texture("ranger.png")
+        self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
+        self.set_attack_animation(
+            [
+                "ranger/ranger_attack_1.png",
+                "ranger/ranger_attack_2.png",
+            ]
+        )
 
     def get_attack_damage(self):
-        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("dexterity"))
-        return total_damage
+        return dices.roll_dice(self.attack_damage, self.get_modifier("dexterity"))
 
     def get_attack_modifier(self):
         return self.get_modifier("dexterity")
 
     def execute_attack(self, game_view, aim_x, aim_y):
-        arrow = Arrow(
-            self.center_x,
-            self.center_y,
-            aim_x,
-            aim_y,
-            self.get_attack_damage(),
-            self.get_attack_modifier(),
-            attacker=self,
-            attack_disadvantage=self.consume_attack_disadvantage(),
-        )
-        game_view.player_projectiles.append(arrow)
+        self._spawn_projectile_attack(game_view, Arrow, aim_x, aim_y)
 
     def draw_attack_indicator(self, aim_x, aim_y):
         return

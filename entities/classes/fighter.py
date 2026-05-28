@@ -7,24 +7,33 @@ from entities.player import Player
 
 
 class Fighter(Player):
-    def __init__(self, name="Воин"):
-        stats = {
-            "strength": 16,
-            "dexterity": 12,
-            "constitution": 16,
-            "intelligence": 8,
-            "wisdom": 10,
-            "charisma": 10,
-        }
-        super().__init__(name, stats)
-        self.class_name = "Воин"
-        self.class_description = "Мастер клинка и щита. Вынослив и смертоносен в ближнем бою."
+    CLASS_NAME = "Воин"
+    CLASS_DESCRIPTION = "Мастер клинка и щита. Медленнее других, зато особенно хорош в ближнем бою."
+    DEFAULT_STATS = {
+        "strength": 16,
+        "dexterity": 12,
+        "constitution": 16,
+        "intelligence": 8,
+        "wisdom": 10,
+        "charisma": 10,
+    }
+    PREVIEW_TEXTURE_NAME = "fighter/fighter.png"
+
+    def __init__(self, name=CLASS_NAME):
+        super().__init__(name, self.DEFAULT_STATS)
+        self.class_name = self.CLASS_NAME
+        self.class_description = self.CLASS_DESCRIPTION
         self.attack_range = 100
         self.attack_angle = 90
         self.attack_damage = 8
         self.speed = 1
 
-        self.set_class_texture("fighter.png")
+        self.set_class_texture(self.PREVIEW_TEXTURE_NAME)
+        self.set_attack_animation(
+            [
+                "fighter/fighter_attack.png",
+            ]
+        )
 
     def get_attack_targets(self, enemies, aim_x, aim_y):
         direction_x, direction_y = self._get_attack_direction(aim_x, aim_y)
@@ -38,14 +47,12 @@ class Fighter(Player):
             dx = enemy.center_x - self.center_x
             dy = enemy.center_y - self.center_y
             distance = math.hypot(dx, dy)
-
             if distance == 0 or distance > self.attack_range:
                 continue
 
             enemy_dir_x = dx / distance
             enemy_dir_y = dy / distance
-            dot = (direction_x * enemy_dir_x) + (direction_y * enemy_dir_y)
-            if dot >= min_dot:
+            if (direction_x * enemy_dir_x) + (direction_y * enemy_dir_y) >= min_dot:
                 targets.append(enemy)
 
         return targets
@@ -68,28 +75,19 @@ class Fighter(Player):
             2,
         )
 
-        left_radians = math.radians(start_angle)
-        right_radians = math.radians(end_angle)
-        arcade.draw_line(
-            self.center_x,
-            self.center_y,
-            self.center_x + (math.cos(left_radians) * self.attack_range),
-            self.center_y + (math.sin(left_radians) * self.attack_range),
-            arcade.color.WHITE,
-            2,
-        )
-        arcade.draw_line(
-            self.center_x,
-            self.center_y,
-            self.center_x + (math.cos(right_radians) * self.attack_range),
-            self.center_y + (math.sin(right_radians) * self.attack_range),
-            arcade.color.WHITE,
-            2,
-        )
+        for angle in (start_angle, end_angle):
+            radians = math.radians(angle)
+            arcade.draw_line(
+                self.center_x,
+                self.center_y,
+                self.center_x + (math.cos(radians) * self.attack_range),
+                self.center_y + (math.sin(radians) * self.attack_range),
+                arcade.color.WHITE,
+                2,
+            )
 
     def get_attack_damage(self):
-        total_damage = dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
-        return max(1, total_damage)
+        return dices.roll_dice(self.attack_damage, self.get_modifier("strength"))
 
     def get_attack_modifier(self):
         return self.get_modifier("strength")

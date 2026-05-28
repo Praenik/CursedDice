@@ -5,17 +5,19 @@ import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
 from core.leaderboard import add_leaderboard_entry, format_time
-from core.resources import resource_path
-from entities.enemies import Bugbear, Goblin, Hobgoblin, Nilbog, Worg
-from entities.player import Player
+from entities.enemies.bugbear import Bugbear
+from entities.enemies.goblin import Goblin
+from entities.enemies.hobgoblin import Hobgoblin
+from entities.enemies.nilbog import Nilbog
+from entities.enemies.worg import Worg
 
-GAME_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "battlefield_ground.png")
+GAME_BACKGROUND_TEXTURE = "assets/textures/backgrounds/battlefield_ground.png"
 MIN_SPAWN_DISTANCE = 150
 SPAWN_MARGIN = 50
 
 
 class GameView(arcade.View):
-    def __init__(self, player: Player):
+    def __init__(self, player):
         super().__init__()
 
         self.player = player
@@ -112,7 +114,11 @@ class GameView(arcade.View):
         self._save_run_result()
 
     def _get_alive_enemy_count(self):
-        return sum(1 for enemy in self.enemies_list if enemy.is_alive())
+        enemies_alive = 0
+        for enemy in self.enemies_list:
+            if enemy.is_alive():
+                enemies_alive += 1
+        return enemies_alive
 
     def draw_game_frame(self, show_pause_hint=True):
         self.clear()

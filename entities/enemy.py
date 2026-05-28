@@ -41,7 +41,7 @@ class Enemy(Entity, arcade.Sprite):
         self.center_x = x
         self.center_y = y
 
-    def update(self, delta_time: float = 1 / 60, player=None, enemies_list=None):
+    def update(self, delta_time=1 / 60, player=None, enemies_list=None):
         self.update_combat_feedback(delta_time)
 
         if player and not player.is_alive():
@@ -129,12 +129,9 @@ class Enemy(Entity, arcade.Sprite):
         return self.get_modifier("strength")
 
     def _is_player_in_attack_range(self, player):
-        return self._distance_to_sprite_bounds(player) <= self.attack_range
-
-    def _distance_to_sprite_bounds(self, other):
-        horizontal_gap = max(0.0, other.left - self.right, self.left - other.right)
-        vertical_gap = max(0.0, other.bottom - self.top, self.bottom - other.top)
-        return math.hypot(horizontal_gap, vertical_gap)
+        distance = arcade.get_distance_between_sprites(self, player)
+        hit_distance = self.attack_range + (self.width / 2) + (player.width / 2)
+        return distance <= hit_distance
 
     def _apply_separation_from_enemies(self, enemies_list):
         for other in enemies_list:

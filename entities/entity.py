@@ -113,6 +113,3 @@ class Entity:
             anchor_x="center",
             bold=True,
         )
-
-    def __repr__(self):
-        return f"Entity(name='{self.name}', hp={self.current_hp}/{self.max_hp}, stats={self.stats})"

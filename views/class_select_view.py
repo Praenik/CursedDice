@@ -1,12 +1,15 @@
+import os
+
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from core.resources import resource_path
-from entities.classes import Fighter, Ranger, Wizard
+from entities.classes.fighter import Fighter
+from entities.classes.ranger import Ranger
+from entities.classes.wizard import Wizard
 
-CLASS_SELECT_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "menu_background.png")
-CLASS_SELECT_TITLE_TEXTURE = resource_path("assets", "textures", "ui", "class_select_title.png")
-PLAYER_PREVIEW_TEXTURE_DIR = resource_path("assets", "textures", "player")
+CLASS_SELECT_BACKGROUND_TEXTURE = "assets/textures/backgrounds/menu_background.png"
+CLASS_SELECT_TITLE_TEXTURE = "assets/textures/ui/class_select_title.png"
+PLAYER_PREVIEW_TEXTURE_DIR = "assets/textures/player"
 PLAYER_PREVIEW_SIZE = 160
 
 
@@ -15,12 +18,10 @@ class ClassSelectView(arcade.View):
         super().__init__()
 
         self.classes = [Fighter, Ranger, Wizard]
-        self.preview_textures = {
-            player_class.PREVIEW_TEXTURE_NAME: arcade.load_texture(
-                PLAYER_PREVIEW_TEXTURE_DIR / player_class.PREVIEW_TEXTURE_NAME
-            )
-            for player_class in self.classes
-        }
+        self.preview_textures = {}
+        for player_class in self.classes:
+            texture_file = os.path.join(PLAYER_PREVIEW_TEXTURE_DIR, player_class.PREVIEW_TEXTURE_NAME)
+            self.preview_textures[player_class.PREVIEW_TEXTURE_NAME] = arcade.load_texture(texture_file)
         self.selected_index = -1
         self.column_width = SCREEN_WIDTH // 3
         self.column_centers = [

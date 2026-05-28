@@ -1,23 +1,21 @@
 import math
-from functools import lru_cache
+import os
 
 import arcade
 from PIL import Image
 
-from core.resources import resource_path
 from entities.entity import Entity
 
-PLAYER_TEXTURES_DIR = resource_path("assets", "textures", "player")
+PLAYER_TEXTURES_DIR = os.path.join("assets", "textures", "player")
 PLAYER_DRAW_SIZE = 84
 DEFAULT_PLAYER_NAME = "Игрок"
 DEFAULT_CLASS_NAME = "Авантюрист"
 HEAL_FEEDBACK_COLOR = (120, 255, 170)
 
 
-@lru_cache(maxsize=None)
 def load_player_textures(texture_name):
-    texture_path = PLAYER_TEXTURES_DIR / texture_name
-    if not texture_path.exists():
+    texture_path = os.path.join(PLAYER_TEXTURES_DIR, texture_name)
+    if not os.path.exists(texture_path):
         raise FileNotFoundError(f"Player texture '{texture_name}' was not found in {PLAYER_TEXTURES_DIR}")
 
     with Image.open(texture_path) as image:
@@ -62,7 +60,7 @@ class Player(Entity, arcade.Sprite):
 
         self.texture_name = None
 
-    def update(self, delta_time: float = 1 / 60):
+    def update(self, delta_time=1 / 60):
         self.update_combat_feedback(delta_time)
         self._update_stun(delta_time)
         self._update_charm(delta_time)

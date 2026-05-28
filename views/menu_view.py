@@ -1,10 +1,9 @@
 import arcade
 
 from constants import SCREEN_HEIGHT, SCREEN_WIDTH
-from core.resources import resource_path
 
-MENU_BACKGROUND_TEXTURE = resource_path("assets", "textures", "backgrounds", "menu_background.png")
-MENU_LOGO_TEXTURE = resource_path("assets", "textures", "ui", "menu_logo.png")
+MENU_BACKGROUND_TEXTURE = "assets/textures/backgrounds/menu_background.png"
+MENU_LOGO_TEXTURE = "assets/textures/ui/menu_logo.png"
 MENU_PANEL_WIDTH = 520
 MENU_PANEL_HEIGHT = 286
 MENU_ITEM_STEP = 60
@@ -293,7 +292,8 @@ class MenuView(arcade.View):
             return ["-"]
 
         lines = [f"- {wrapped_lines[0]}"]
-        lines.extend(f"  {line}" for line in wrapped_lines[1:])
+        for line in wrapped_lines[1:]:
+            lines.append(f"  {line}")
         return lines
 
     def _wrap_text(self, text, max_chars):

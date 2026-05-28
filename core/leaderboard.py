@@ -1,30 +1,41 @@
 import json
 
-from core.resources import storage_path
-
-LEADERBOARD_FILE = storage_path("leaderboard.json")
+LEADERBOARD_FILE = "leaderboard.json"
 
 
 def load_leaderboard_entries():
-    if not LEADERBOARD_FILE.exists():
-        return []
-
     try:
-        with LEADERBOARD_FILE.open("r", encoding="utf-8") as leaderboard_file:
-            raw_entries = json.load(leaderboard_file)
-    except (json.JSONDecodeError, OSError):
+        with open(LEADERBOARD_FILE, "r", encoding="utf-8") as leaderboard_file:
+            saved_entries = json.load(leaderboard_file)
+    except Exception:
         return []
 
-    if not isinstance(raw_entries, list):
+    if type(saved_entries) != list:
         return []
 
-    entries = []
-    for entry in raw_entries:
-        normalized_entry = _normalize_entry(entry)
-        if normalized_entry is not None:
-            entries.append(normalized_entry)
+    fixed_entries = []
+    for entry in saved_entries:
+        try:
+            class_name = str(entry["class_name"])
+            texture_name = str(entry["texture_name"])
+            time_seconds = round(float(entry["time_seconds"]), 1)
+            wave_reached = int(entry["wave_reached"])
+        except Exception:
+            continue
 
-    return sort_leaderboard_entries(entries)
+        if wave_reached < 1 or time_seconds < 0:
+            continue
+
+        fixed_entries.append(
+            {
+                "class_name": class_name,
+                "texture_name": texture_name,
+                "time_seconds": time_seconds,
+                "wave_reached": wave_reached,
+            }
+        )
+
+    return sort_leaderboard_entries(fixed_entries)
 
 
 def add_leaderboard_entry(class_name, texture_name, time_seconds, wave_reached):
@@ -37,45 +48,35 @@ def add_leaderboard_entry(class_name, texture_name, time_seconds, wave_reached):
             "wave_reached": int(wave_reached),
         }
     )
-    LEADERBOARD_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with LEADERBOARD_FILE.open("w", encoding="utf-8") as leaderboard_file:
+    with open(LEADERBOARD_FILE, "w", encoding="utf-8") as leaderboard_file:
         json.dump(sort_leaderboard_entries(entries), leaderboard_file, ensure_ascii=False, indent=2)
 
 
 def sort_leaderboard_entries(entries):
-    return sorted(
-        entries,
-        key=lambda entry: (-entry["wave_reached"], entry["time_seconds"], entry["class_name"]),
-    )
+    for i in range(len(entries)):
+        for j in range(i + 1, len(entries)):
+            if is_better_score(entries[j], entries[i]):
+                temp = entries[i]
+                entries[i] = entries[j]
+                entries[j] = temp
+    return entries
+
+
+def is_better_score(new_score, old_score):
+    if new_score["wave_reached"] > old_score["wave_reached"]:
+        return True
+    if new_score["wave_reached"] < old_score["wave_reached"]:
+        return False
+
+    if new_score["time_seconds"] < old_score["time_seconds"]:
+        return True
+    if new_score["time_seconds"] > old_score["time_seconds"]:
+        return False
+
+    return new_score["class_name"] < old_score["class_name"]
 
 
 def format_time(seconds):
     minutes = int(seconds // 60)
     remaining_seconds = seconds - (minutes * 60)
     return f"{minutes:02d}:{remaining_seconds:04.1f}"
-
-
-def _normalize_entry(entry):
-    if not isinstance(entry, dict):
-        return None
-
-    class_name = entry.get("class_name")
-    texture_name = entry.get("texture_name")
-    if not isinstance(class_name, str) or not isinstance(texture_name, str):
-        return None
-
-    try:
-        normalized_time = round(float(entry["time_seconds"]), 1)
-        normalized_wave = int(entry["wave_reached"])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-    if normalized_wave < 1 or normalized_time < 0:
-        return None
-
-    return {
-        "class_name": class_name,
-        "texture_name": texture_name,
-        "time_seconds": normalized_time,
-        "wave_reached": normalized_wave,
-    }
